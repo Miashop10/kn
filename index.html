@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Atendimentos ADV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+:root{
+  --tinta:#22262b;          /* texto principal */
+  --papel:#eef0f2;          /* fundo geral */
+  --branco:#ffffff;
+  --navy:#1b2a41;           /* cabeçalho */
+  --oxblood:#7c2d3e;        /* acento jurídico */
+  --oxblood-claro:#9c4256;
+  --linha:#d5d9de;
+  --cinza:#6b7280;
+  --verde-bg:#d9f2df;  --verde-tx:#14532d;  --verde-bd:#86c79a;
+  --amarelo-bg:#fcf3ce; --amarelo-tx:#713f12; --amarelo-bd:#e3c96a;
+  --vermelho-bg:#fadddd;--vermelho-tx:#7f1d1d;--vermelho-bd:#e59a9a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Archivo',sans-serif;background:var(--papel);color:var(--tinta);font-size:14px}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:13px;border:1px solid var(--linha);border-radius:6px;padding:7px 9px;background:var(--branco);color:var(--tinta)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--oxblood-claro);outline-offset:0;border-color:var(--oxblood)}
+
+/* ===== cabeçalho ===== */
+header{background:var(--navy);color:#f2ede4;padding:16px 26px 0;border-bottom:4px solid var(--oxblood)}
+header h1{font-family:'Spectral',serif;font-weight:600;font-size:21px;letter-spacing:.3px}
+header h1 small{font-family:'Archivo';font-weight:400;font-size:12px;opacity:.65;margin-left:10px;letter-spacing:1.5px;text-transform:uppercase}
+.abas{display:flex;gap:6px;margin-top:14px}
+.aba{background:transparent;border:none;color:#c8cdd6;padding:10px 18px;font-size:13.5px;font-weight:600;border-radius:8px 8px 0 0;letter-spacing:.3px}
+.aba.ativa{background:var(--papel);color:var(--navy)}
+.aba .cont{background:var(--oxblood);color:#fff;border-radius:99px;padding:1px 7px;font-size:11px;margin-left:6px}
+
+main{padding:18px 26px;max-width:1600px;margin:0 auto}
+.painel{display:none}
+.painel.ativo{display:block}
+
+/* ===== barra de ações ===== */
+.barra{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.btn{border:none;border-radius:7px;padding:9px 15px;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.btn-principal{background:var(--oxblood);color:#fff}
+.btn-principal:hover{background:var(--oxblood-claro)}
+.btn-borda{background:var(--branco);border:1px solid var(--linha);color:var(--tinta)}
+.btn-borda:hover{border-color:var(--oxblood);color:var(--oxblood)}
+.btn-mini{padding:4px 9px;font-size:12px;border-radius:5px}
+.btn-perigo{background:var(--branco);border:1px solid var(--vermelho-bd);color:var(--vermelho-tx)}
+.barra .direita{margin-left:auto;display:flex;gap:8px;align-items:center;color:var(--cinza);font-size:12.5px}
+
+/* ===== tabela ===== */
+.tabela-wrap{background:var(--branco);border:1px solid var(--linha);border-radius:10px;overflow:auto;max-height:calc(100vh - 220px)}
+table{border-collapse:collapse;width:100%;min-width:1250px}
+thead th{position:sticky;top:0;background:var(--navy);color:#e8e4da;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;padding:9px 10px;text-align:left;white-space:nowrap;z-index:2}
+thead tr.filtros th{top:34px;background:#2a3b55;padding:5px 6px}
+thead tr.filtros input,thead tr.filtros select{width:100%;min-width:70px;font-size:12px;padding:5px 7px;border-radius:5px;border:none}
+tbody td{padding:8px 10px;border-top:1px solid var(--linha);font-size:13px;vertical-align:middle}
+tbody tr{cursor:pointer}
+tbody tr:hover td{filter:brightness(.96)}
+td.acao{white-space:nowrap}
+.st-verde td{background:var(--verde-bg);color:var(--verde-tx)}
+.st-amarelo td{background:var(--amarelo-bg);color:var(--amarelo-tx)}
+.st-vermelho td{background:var(--vermelho-bg);color:var(--vermelho-tx)}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;white-space:nowrap;border:1px solid transparent}
+.pill.verde{background:#fff;color:var(--verde-tx);border-color:var(--verde-bd)}
+.pill.amarelo{background:#fff;color:var(--amarelo-tx);border-color:var(--amarelo-bd)}
+.pill.vermelho{background:#fff;color:var(--vermelho-tx);border-color:var(--vermelho-bd)}
+.docs-chip{font-size:11.5px;background:#fff;border:1px solid var(--linha);border-radius:99px;padding:2px 8px;color:var(--cinza)}
+.vazio{padding:40px;text-align:center;color:var(--cinza)}
+
+/* ===== modal ===== */
+.modal-fundo{display:none;position:fixed;inset:0;background:rgba(20,25,32,.55);z-index:50;overflow:auto;padding:30px 14px}
+.modal-fundo.aberto{display:flex;align-items:flex-start;justify-content:center}
+.modal{background:var(--branco);border-radius:12px;width:100%;max-width:860px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-topo{padding:16px 22px;border-bottom:1px solid var(--linha);display:flex;justify-content:space-between;align-items:center}
+.modal-topo h2{font-family:'Spectral',serif;font-size:18px;color:var(--navy)}
+.fechar{background:none;border:none;font-size:22px;color:var(--cinza);line-height:1}
+.modal-corpo{padding:20px 22px}
+.grade{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.campo{display:flex;flex-direction:column;gap:4px}
+.campo label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cinza)}
+.campo.c2{grid-column:span 2}.campo.c4{grid-column:span 4}
+.campo-cond{background:#f4f6f8;border:1px dashed var(--linha);border-radius:8px;padding:10px 12px;grid-column:span 4;display:none}
+.campo-cond.visivel{display:flex}
+.modal-rodape{padding:14px 22px;border-top:1px solid var(--linha);display:flex;justify-content:flex-end;gap:8px}
+
+/* ===== documentos ===== */
+.docs-secao{margin-top:22px;border-top:2px solid var(--navy);padding-top:14px}
+.docs-secao h3{font-family:'Spectral',serif;font-size:15px;color:var(--navy);margin-bottom:4px}
+.docs-grupo-titulo{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--oxblood);margin:14px 0 6px;text-transform:uppercase}
+.doc-linha{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border:1px solid var(--linha);border-radius:8px;margin-bottom:6px;background:#fbfcfd}
+.doc-linha .titulo{flex:0 0 300px;font-size:12.5px;font-weight:600;padding-top:5px}
+.doc-linha .arquivos{flex:1;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.doc-arquivo{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--linha);border-radius:6px;padding:3px 8px;font-size:12px}
+.doc-arquivo a{color:var(--navy);text-decoration:none;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-arquivo button{background:none;border:none;color:var(--vermelho-tx);font-size:14px;padding:0 2px}
+.doc-add{position:relative;overflow:hidden}
+.doc-add input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* ===== importação ===== */
+.imp-passos{color:var(--cinza);font-size:12.5px;margin-bottom:10px}
+.mapa-grade{display:flex;gap:8px;overflow:auto;padding-bottom:6px}
+.mapa-col{min-width:150px;border:1px solid var(--linha);border-radius:8px;background:#fbfcfd}
+.mapa-col select{width:100%;border:none;border-bottom:1px solid var(--linha);border-radius:8px 8px 0 0;background:#f1f3f5;font-weight:600}
+.mapa-col .amostra{padding:6px 8px;font-size:12px;border-top:1px solid #eceff1;max-height:34px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+/* ===== abertura de pasta ===== */
+.ap-input{width:130px}
+.ap-falta{width:100%;margin-top:5px;display:none}
+.ap-falta.visivel{display:block}
+
+/* ===== toast / loading ===== */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 20px;border-radius:8px;font-size:13.5px;display:none;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+#carregando{position:fixed;inset:0;background:rgba(255,255,255,.7);display:none;align-items:center;justify-content:center;z-index:98;flex-direction:column;gap:12px}
+#carregando .disco{width:38px;height:38px;border:4px solid var(--linha);border-top-color:var(--oxblood);border-radius:50%;animation:gira .8s linear infinite}
+#carregando span{font-weight:600;color:var(--navy)}
+@keyframes gira{to{transform:rotate(360deg)}}
+@media (max-width:800px){.grade{grid-template-columns:1fr 1fr}.campo.c2,.campo.c4{grid-column:span 2}.doc-linha{flex-direction:column}.doc-linha .titulo{flex:auto}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Sistema de Atendimentos <small>Advocacia Trabalhista</small></h1>
+  <div class="abas">
+    <button class="aba ativa" data-aba="atendimentos" onclick="trocarAba('atendimentos')">Atendimentos <span class="cont" id="contAtend">0</span></button>
+    <button class="aba" data-aba="abertura" onclick="trocarAba('abertura')">Abertura de Pasta <span class="cont" id="contAbertura">0</span></button>
+  </div>
+</header>
+
+<main>
+<!-- ================= ABA 1: ATENDIMENTOS ================= -->
+<section class="painel ativo" id="painel-atendimentos">
+  <div class="barra">
+    <button class="btn btn-principal" onclick="abrirFicha()">+ Novo atendimento</button>
+    <button class="btn btn-borda doc-add" style="position:relative">
+      Importar Excel/CSV <input type="file" accept=".xlsx,.xls,.csv" onchange="importarExcel(this)">
+    </button>
+    <button class="btn btn-borda doc-add" style="position:relative">
+      Importar PDF <input type="file" accept=".pdf" onchange="importarPdf(this)">
+    </button>
+    <button class="btn btn-borda" onclick="carregar()">&#8635; Atualizar</button>
+    <div class="direita"><span id="resumoFiltro"></span></div>
+  </div>
+
+  <div class="tabela-wrap">
+    <table id="tabAtend">
+      <thead>
+        <tr>
+          <th>Data</th><th>Nome</th><th>Telefone</th><th>Empresa</th><th>Responsável</th>
+          <th>Pasta</th><th>Adv. Atendimento</th><th>Data Saída</th><th>Status</th>
+          <th>Docs</th><th>Observações</th><th></th>
+        </tr>
+        <tr class="filtros">
+          <th><input data-f="DATA" placeholder="Filtrar"></th>
+          <th><input data-f="NOME" placeholder="Filtrar"></th>
+          <th><input data-f="TELEFONE" placeholder="Filtrar"></th>
+          <th><input data-f="EMPRESA" placeholder="Filtrar"></th>
+          <th><input data-f="RESPONSAVEL" placeholder="Filtrar"></th>
+          <th><input data-f="PASTA" placeholder="Filtrar"></th>
+          <th><input data-f="ADV_ATENDIMENTO" placeholder="Filtrar"></th>
+          <th><input data-f="DATA_SAIDA" placeholder="Filtrar"></th>
+          <th><select data-f="STATUS"><option value="">Todos</option></select></th>
+          <th></th>
+          <th><input data-f="OBSERVACOES" placeholder="Filtrar"></th>
+          <th><button class="btn btn-mini btn-borda" onclick="limparFiltros()" title="Limpar filtros">&#10005;</button></th>
+        </tr>
+      </thead>
+      <tbody id="corpoAtend"></tbody>
+    </table>
+    <div class="vazio" id="vazioAtend" style="display:none">Nenhum atendimento. Clique em “+ Novo atendimento” ou importe uma planilha.</div>
+  </div>
+</section>
+
+<!-- ================= ABA 2: ABERTURA DE PASTA ================= -->
+<section class="painel" id="painel-abertura">
+  <div class="barra">
+    <span style="color:var(--cinza);font-size:13px">Clientes com status <b style="color:var(--verde-tx)">FECHOU</b> entram aqui automaticamente.</span>
+    <div class="direita"><button class="btn btn-borda" onclick="carregar()">&#8635; Atualizar</button></div>
+  </div>
+  <div class="tabela-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th><th>Telefone</th><th>Empresa</th><th>Documentação</th>
+          <th>Data abertura</th><th>Nº Pasta CPJ</th><th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="corpoAbertura"></tbody>
+    </table>
+    <div class="vazio" id="vazioAbertura" style="display:none">Nenhum cliente com status FECHOU ainda.</div>
+  </div>
+</section>
+</main>
+
+<!-- ================= MODAL FICHA ================= -->
+<div class="modal-fundo" id="mFicha">
+  <div class="modal">
+    <div class="modal-topo">
+      <h2 id="fichaTitulo">Novo atendimento</h2>
+      <button class="fechar" onclick="fecharModal('mFicha')">&times;</button>
+    </div>
+    <div class="modal-corpo">
+      <div class="grade">
+        <div class="campo"><label>Data</label><input type="date" id="f_DATA"></div>
+        <div class="campo c2"><label>Nome</label><input id="f_NOME"></div>
+        <div class="campo"><label>Telefone</label><input id="f_TELEFONE"></div>
+        <div class="campo c2"><label>Empresa</label><input id="f_EMPRESA"></div>
+        <div class="campo"><label>Responsável</label><input id="f_RESPONSAVEL"></div>
+        <div class="campo"><label>Pasta</label><input id="f_PASTA"></div>
+        <div class="campo"><label>Data saída</label><input type="date" id="f_DATA_SAIDA"></div>
+        <div class="campo c2"><label>Adv. atendimento</label><input id="f_ADV_ATENDIMENTO"></div>
+        <div class="campo"><label>Status</label>
+          <select id="f_STATUS" onchange="condicionais()"><option value=""></option></select>
+        </div>
+        <div class="campo c4"><label>Observações</label><textarea id="f_OBSERVACOES" rows="2"></textarea></div>
+
+        <div class="campo-cond campo" id="cond_INDICACAO">
+          <label>Indicação (quem indicou / indicado por)</label><input id="f_INDICACAO">
+        </div>
+        <div class="campo-cond campo" id="cond_SEMDIREITO">
+          <label>Observações — Sem direito</label><textarea id="f_OBS_SEM_DIREITO" rows="2"></textarea>
+        </div>
+        <div class="campo-cond campo" id="cond_OUTRODIA">
+          <label>Dia / horário remarcado</label><input id="f_RETORNO_DIA_HORARIO" placeholder="Ex.: 20/07 às 14h30">
+        </div>
+      </div>
+
+      <!-- documentos -->
+      <div class="docs-secao" id="secaoDocs">
+        <h3>Documentos</h3>
+        <div id="avisoSalvar" style="font-size:12.5px;color:var(--cinza)">Salve o atendimento para poder anexar documentos.</div>
+        <div id="listaDocs" style="display:none">
+          <div class="docs-grupo-titulo">Obrigatórios</div>
+          <div id="docsObrig"></div>
+          <div class="docs-grupo-titulo">Se você tiver</div>
+          <div id="docsOpc"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-rodape">
+      <button class="btn btn-perigo" id="btnExcluir" style="margin-right:auto;display:none" onclick="excluirRegistro()">Excluir</button>
+      <button class="btn btn-borda" onclick="fecharModal('mFicha')">Cancelar</button>
+      <button class="btn btn-principal" onclick="salvarFicha()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL IMPORTAÇÃO ================= -->
+<div class="modal-fundo" id="mImport">
+  <div class="modal" style="max-width:1100px">
+    <div class="modal-topo">
+      <h2>Importar dados</h2>
+      <button class="fechar" onclick="fecharModal('mImport')">&times;</button>
+    </div>
+    <div class="modal-corpo">
+      <div class="imp-passos">Confira abaixo como cada coluna do arquivo será importada. Ajuste o destino de cada coluna se necessário e clique em <b>Importar</b>. Colunas marcadas como “— ignorar —” não serão importadas.</div>
+      <div class="mapa-grade" id="mapaGrade"></div>
+      <div style="margin-top:10px;font-size:12.5px;color:var(--cinza)"><span id="impTotal"></span></div>
+    </div>
+    <div class="modal-rodape">
+      <button class="btn btn-borda" onclick="fecharModal('mImport')">Cancelar</button>
+      <button class="btn btn-principal" onclick="confirmarImportacao()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="carregando"><div class="disco"></div><span id="carregandoTxt">Carregando…</span></div>
+
+<script>
+/**********************************************************
+ * CONFIGURAÇÃO — cole aqui a URL do App da Web (termina em /exec)
+ **********************************************************/
+const API_URL = 'https://script.google.com/macros/s/AKfycbxy32gPLb_2ZlUSehESqU9un41SxrcU7MJ4RY5EQ3Kkp10HGVZ0YCd85fb5HEcItok7bg/exec';
+
+/* ===================== constantes ===================== */
+const STATUS_CORES = {
+  'FECHOU':'verde',
+  'SEM INTERESSE':'vermelho',
+  'PENDENTE':'amarelo',
+  'SEM DIREITO':'vermelho',
+  'TENTOU LIGAR E ENVIOU MSG':'vermelho',
+  'TENTOU LIGAR E NÃO ENVIOU MENSAGEM':'amarelo',
+  'PENDENTE ASSINATURA':'amarelo',
+  'JÁ TEM AÇÃO':'vermelho',
+  'EM ANÁLISE':'amarelo',
+  'RETORNAR':'amarelo',
+  'MARCADO OUTRO DIA':'amarelo'
+};
+const DOCS_OBRIG = [
+  ['DOC_CTPS','CTPS (Carteira de Trabalho)'],
+  ['DOC_RG_CPF','RG e CPF (frente e verso)'],
+  ['DOC_RESIDENCIA','Comprovante de Residência (últimos 3 meses)'],
+  ['DOC_TRCT','Termo de rescisão / TRCT (se foi demitido)']
+];
+const DOCS_OPC = [
+  ['DOC_CONTRACHEQUES','Contracheques / holerites (últimos 3 meses)'],
+  ['DOC_EXAMES','Exames médicos (admissional e demissional)'],
+  ['DOC_CAT','CAT — Comunicação de Acidente de Trabalho'],
+  ['DOC_ATESTADOS','Atestados médicos relacionados ao trabalho'],
+  ['DOC_PRINTS','Prints de conversas / e-mails com a empresa']
+];
+const CAMPOS_IMPORT = [
+  ['','— ignorar —'],['DATA','DATA'],['OBSERVACOES','OBSERVAÇÕES'],['DATA_SAIDA','DATA SAÍDA'],
+  ['NOME','NOME'],['TELEFONE','TELEFONE'],['EMPRESA','EMPRESA'],['RESPONSAVEL','RESPONSÁVEL'],
+  ['PASTA','PASTA'],['ADV_ATENDIMENTO','ADV ATENDIMENTO'],['STATUS','STATUS']
+];
+
+let registros = [];
+let fichaAtual = null;   // registro em edição
+let importDados = null;  // {linhas:[[...]], mapa:[campo,...]}
+
+/* ===================== utilidades ===================== */
+function $(id){return document.getElementById(id)}
+function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._x);t._x=setTimeout(()=>t.style.display='none',3200)}
+function loading(on,txt){$('carregando').style.display=on?'flex':'none';if(txt)$('carregandoTxt').textContent=txt}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function normaliza(s){return String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim()}
+function dataBR(iso){ // yyyy-mm-dd -> dd/mm/yyyy
+  if(!iso) return '';
+  if(/^\d{4}-\d{2}-\d{2}/.test(iso)){const [a,m,d]=iso.slice(0,10).split('-');return `${d}/${m}/${a}`}
+  return iso;
+}
+function dataISO(br){ // dd/mm/yyyy -> yyyy-mm-dd
+  if(!br) return '';
+  const m=String(br).match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if(!m) return '';
+  let a=m[3].length===2?'20'+m[3]:m[3];
+  return `${a}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+}
+function totalDocs(r){
+  let n=0;
+  [...DOCS_OBRIG,...DOCS_OPC].forEach(([c])=>{try{n+=JSON.parse(r[c]||'[]').length}catch(e){}});
+  return n;
+}
+
+/* ===================== API ===================== */
+async function apiGet(){
+  const resp = await fetch(API_URL+'?action=listar');
+  return resp.json();
+}
+async function apiPost(payload){
+  const resp = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+  return resp.json();
+}
+
+/* ===================== carregar / renderizar ===================== */
+async function carregar(){
+  if(API_URL.indexOf('COLE_AQUI')===0){toast('Configure a API_URL no início do arquivo index.html');renderizar();return}
+  loading(true,'Carregando dados…');
+  try{
+    const r = await apiGet();
+    if(r.ok){registros=r.registros}else{toast('Erro: '+r.erro)}
+  }catch(e){toast('Falha de conexão com o Apps Script')}
+  loading(false);
+  renderizar();
+}
+
+function trocarAba(nome){
+  document.querySelectorAll('.aba').forEach(b=>b.classList.toggle('ativa',b.dataset.aba===nome));
+  document.querySelectorAll('.painel').forEach(p=>p.classList.remove('ativo'));
+  $('painel-'+nome).classList.add('ativo');
+}
+
+function filtrosAtivos(){
+  const f={};
+  document.querySelectorAll('[data-f]').forEach(el=>{if(el.value)f[el.dataset.f]=normaliza(el.value)});
+  return f;
+}
+function limparFiltros(){document.querySelectorAll('[data-f]').forEach(el=>el.value='');renderizar()}
+
+function renderizar(){
+  /* --- aba 1 --- */
+  const f = filtrosAtivos();
+  const visiveis = registros.filter(r=>Object.entries(f).every(([c,v])=>normaliza(r[c]).includes(v)));
+  const corpo = $('corpoAtend');
+  corpo.innerHTML = visiveis.map(r=>{
+    const cor = STATUS_CORES[normaliza(r.STATUS)]||'';
+    const extra = [];
+    if(normaliza(r.STATUS)==='FECHOU' && r.INDICACAO) extra.push('Indicação: '+esc(r.INDICACAO));
+    if(normaliza(r.STATUS)==='SEM DIREITO' && r.OBS_SEM_DIREITO) extra.push(esc(r.OBS_SEM_DIREITO));
+    if(normaliza(r.STATUS)==='MARCADO OUTRO DIA' && r.RETORNO_DIA_HORARIO) extra.push('Remarcado: '+esc(r.RETORNO_DIA_HORARIO));
+    return `<tr class="st-${cor}" onclick="abrirFicha('${r.ID}')">
+      <td>${esc(dataBR(r.DATA))}</td><td><b>${esc(r.NOME)}</b></td><td>${esc(r.TELEFONE)}</td>
+      <td>${esc(r.EMPRESA)}</td><td>${esc(r.RESPONSAVEL)}</td><td>${esc(r.PASTA)}</td>
+      <td>${esc(r.ADV_ATENDIMENTO)}</td><td>${esc(dataBR(r.DATA_SAIDA))}</td>
+      <td><span class="pill ${cor}">${esc(r.STATUS)||'—'}</span>${extra.length?'<div style="font-size:11px;margin-top:3px">'+extra.join(' · ')+'</div>':''}</td>
+      <td><span class="docs-chip">${totalDocs(r)} arq.</span></td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.OBSERVACOES)}">${esc(r.OBSERVACOES)}</td>
+      <td class="acao"><button class="btn btn-mini btn-borda" onclick="event.stopPropagation();abrirFicha('${r.ID}')">Editar</button></td>
+    </tr>`}).join('');
+  $('vazioAtend').style.display = visiveis.length?'none':'block';
+  $('contAtend').textContent = registros.length;
+  $('resumoFiltro').textContent = Object.keys(f).length?`${visiveis.length} de ${registros.length} registros`:'';
+
+  /* --- aba 2 --- */
+  const fechados = registros.filter(r=>normaliza(r.STATUS)==='FECHOU');
+  $('corpoAbertura').innerHTML = fechados.map(r=>{
+    const ok = normaliza(r.DOC_SITUACAO)==='DOCUMENTACAO OK';
+    const faltando = normaliza(r.DOC_SITUACAO)==='FALTANDO DOCUMENTACAO';
+    const cor = ok?'st-verde':(faltando?'st-amarelo':'');
+    return `<tr class="${cor}">
+      <td><b>${esc(r.NOME)}</b></td><td>${esc(r.TELEFONE)}</td><td>${esc(r.EMPRESA)}</td>
+      <td style="min-width:250px">
+        <select onchange="apMudaSituacao('${r.ID}',this)">
+          <option value=""></option>
+          <option value="DOCUMENTAÇÃO OK" ${ok?'selected':''}>DOCUMENTAÇÃO OK</option>
+          <option value="FALTANDO DOCUMENTAÇÃO" ${faltando?'selected':''}>FALTANDO DOCUMENTAÇÃO</option>
+        </select>
+        <input class="ap-falta ${faltando?'visivel':''}" id="apFalta_${r.ID}" placeholder="Qual documentação está faltando?" value="${esc(r.DOC_FALTANDO)}">
+      </td>
+      <td><input type="date" class="ap-input" id="apData_${r.ID}" value="${esc(dataISO(r.DATA_ABERTURA)||r.DATA_ABERTURA)}"></td>
+      <td><input class="ap-input" id="apCpj_${r.ID}" placeholder="Nº pasta" value="${esc(r.PASTA_CPJ)}"></td>
+      <td class="acao">
+        <button class="btn btn-mini btn-principal" onclick="apSalvar('${r.ID}')">Salvar</button>
+        <button class="btn btn-mini btn-borda" onclick="exportarPdfUnificado('${r.ID}')" title="Exportar todos os documentos anexados em um único PDF">&#128196; PDF unificado</button>
+        <button class="btn btn-mini btn-borda" onclick="abrirFicha('${r.ID}')">Ficha</button>
+      </td>
+    </tr>`}).join('');
+  $('vazioAbertura').style.display = fechados.length?'none':'block';
+  $('contAbertura').textContent = fechados.length;
+}
+
+/* ===================== ficha (modal) ===================== */
+function abrirFicha(id){
+  fichaAtual = id ? registros.find(r=>r.ID===id) : null;
+  $('fichaTitulo').textContent = fichaAtual ? 'Atendimento — '+(fichaAtual.NOME||'') : 'Novo atendimento';
+  $('btnExcluir').style.display = fichaAtual?'inline-flex':'none';
+  const g = c => fichaAtual ? (fichaAtual[c]||'') : '';
+  $('f_DATA').value = dataISO(g('DATA'))||g('DATA');
+  $('f_DATA_SAIDA').value = dataISO(g('DATA_SAIDA'))||g('DATA_SAIDA');
+  ['NOME','TELEFONE','EMPRESA','RESPONSAVEL','PASTA','ADV_ATENDIMENTO','OBSERVACOES','STATUS','INDICACAO','OBS_SEM_DIREITO','RETORNO_DIA_HORARIO']
+    .forEach(c=>$('f_'+c).value=g(c));
+  condicionais();
+  renderDocs();
+  $('mFicha').classList.add('aberto');
+}
+function fecharModal(id){$(id).classList.remove('aberto')}
+
+function condicionais(){
+  const s = normaliza($('f_STATUS').value);
+  $('cond_INDICACAO').classList.toggle('visivel', s==='FECHOU');
+  $('cond_SEMDIREITO').classList.toggle('visivel', s==='SEM DIREITO');
+  $('cond_OUTRODIA').classList.toggle('visivel', s==='MARCADO OUTRO DIA');
+}
+
+async function salvarFicha(){
+  const reg = {
+    ID: fichaAtual?fichaAtual.ID:'',
+    DATA: dataBR($('f_DATA').value),
+    DATA_SAIDA: dataBR($('f_DATA_SAIDA').value),
+    NOME: $('f_NOME').value.trim(),
+    TELEFONE: $('f_TELEFONE').value.trim(),
+    EMPRESA: $('f_EMPRESA').value.trim(),
+    RESPONSAVEL: $('f_RESPONSAVEL').value.trim(),
+    PASTA: $('f_PASTA').value.trim(),
+    ADV_ATENDIMENTO: $('f_ADV_ATENDIMENTO').value.trim(),
+    OBSERVACOES: $('f_OBSERVACOES').value.trim(),
+    STATUS: $('f_STATUS').value,
+    INDICACAO: $('f_INDICACAO').value.trim(),
+    OBS_SEM_DIREITO: $('f_OBS_SEM_DIREITO').value.trim(),
+    RETORNO_DIA_HORARIO: $('f_RETORNO_DIA_HORARIO').value.trim()
+  };
+  if(!reg.NOME){toast('Informe o nome do cliente');return}
+  loading(true,'Salvando…');
+  try{
+    const r = await apiPost({action:'salvar',registro:reg});
+    if(r.ok){
+      reg.ID = r.id;
+      const idx = registros.findIndex(x=>x.ID===r.id);
+      if(idx>=0){registros[idx]={...registros[idx],...reg}}else{registros.push(reg)}
+      fichaAtual = registros.find(x=>x.ID===r.id);
+      toast('Salvo com sucesso');
+      renderizar(); renderDocs();
+      if(normaliza(reg.STATUS)!=='FECHOU') fecharModal('mFicha');
+      else { $('fichaTitulo').textContent='Atendimento — '+reg.NOME; $('btnExcluir').style.display='inline-flex'; }
+    }else toast('Erro: '+r.erro);
+  }catch(e){toast('Falha ao salvar')}
+  loading(false);
+}
+
+async function excluirRegistro(){
+  if(!fichaAtual) return;
+  if(!confirm('Excluir o atendimento de '+fichaAtual.NOME+'?')) return;
+  loading(true,'Excluindo…');
+  const r = await apiPost({action:'excluir',id:fichaAtual.ID});
+  loading(false);
+  if(r.ok){registros=registros.filter(x=>x.ID!==fichaAtual.ID);fecharModal('mFicha');renderizar();toast('Excluído')}
+  else toast('Erro: '+r.erro);
+}
+
+/* ===================== documentos ===================== */
+function renderDocs(){
+  const tem = !!fichaAtual;
+  $('avisoSalvar').style.display = tem?'none':'block';
+  $('listaDocs').style.display = tem?'block':'none';
+  if(!tem) return;
+  const linha = ([col,titulo])=>{
+    let lista=[]; try{lista=JSON.parse(fichaAtual[col]||'[]')}catch(e){}
+    return `<div class="doc-linha">
+      <div class="titulo">${titulo}</div>
+      <div class="arquivos">
+        ${lista.map(d=>`<span class="doc-arquivo">
+            <a href="https://drive.google.com/file/d/${d.id}/view" target="_blank" title="${esc(d.nome)}">${esc(d.nome)}</a>
+            <button title="Remover" onclick="removerDoc('${col}','${d.id}')">&times;</button>
+          </span>`).join('')}
+        <span class="btn btn-mini btn-borda doc-add">+ Anexar<input type="file" multiple accept=".pdf,image/*" onchange="anexar('${col}',this)"></span>
+      </div>
+    </div>`};
+  $('docsObrig').innerHTML = DOCS_OBRIG.map(linha).join('');
+  $('docsOpc').innerHTML = DOCS_OPC.map(linha).join('');
+}
+
+function lerArquivoBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// comprime fotos grandes antes do upload (mais rápido e economiza Drive)
+function comprimirImagem(file){
+  return new Promise(res=>{
+    if(!file.type.startsWith('image/')||file.size<1200000){res(file);return}
+    const img=new Image();
+    img.onload=()=>{
+      const max=1600, esc=Math.min(1,max/Math.max(img.width,img.height));
+      const cv=document.createElement('canvas');
+      cv.width=img.width*esc; cv.height=img.height*esc;
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      cv.toBlob(b=>res(new File([b],file.name.replace(/\.\w+$/,'')+'.jpg',{type:'image/jpeg'})),'image/jpeg',0.82);
+    };
+    img.onerror=()=>res(file);
+    img.src=URL.createObjectURL(file);
+  });
+}
+
+async function anexar(coluna,input){
+  if(!fichaAtual){toast('Salve o atendimento primeiro');return}
+  const files=[...input.files]; input.value='';
+  for(let i=0;i<files.length;i++){
+    loading(true,`Enviando ${i+1}/${files.length}: ${files[i].name}`);
+    try{
+      const f = await comprimirImagem(files[i]);
+      const b64 = await lerArquivoBase64(f);
+      const r = await apiPost({action:'uploadDoc',id:fichaAtual.ID,nome:fichaAtual.NOME,coluna,arquivoNome:f.name,mimeType:f.type||'application/octet-stream',base64:b64});
+      if(r.ok){fichaAtual[coluna]=JSON.stringify(r.lista)}
+      else toast('Erro no envio: '+r.erro);
+    }catch(e){toast('Falha ao enviar '+files[i].name)}
+  }
+  loading(false);
+  renderDocs(); renderizar();
+  toast('Documento(s) salvos no Google Drive');
+}
+
+async function removerDoc(coluna,arquivoId){
+  if(!confirm('Remover este documento?'))return;
+  loading(true,'Removendo…');
+  const r = await apiPost({action:'removerDoc',id:fichaAtual.ID,coluna,arquivoId});
+  loading(false);
+  if(r.ok){fichaAtual[coluna]=JSON.stringify(r.lista);renderDocs();renderizar()}
+  else toast('Erro: '+r.erro);
+}
+
+/* ===================== abertura de pasta ===================== */
+function apMudaSituacao(id,sel){
+  const campo=$('apFalta_'+id);
+  campo.classList.toggle('visivel', normaliza(sel.value)==='FALTANDO DOCUMENTACAO');
+}
+async function apSalvar(id){
+  const r = registros.find(x=>x.ID===id);
+  const situacao = event.target.closest('tr').querySelector('select').value;
+  const reg = {
+    ID:id,
+    DOC_SITUACAO: situacao,
+    DOC_FALTANDO: normaliza(situacao)==='FALTANDO DOCUMENTACAO'?$('apFalta_'+id).value.trim():'',
+    DATA_ABERTURA: dataBR($('apData_'+id).value),
+    PASTA_CPJ: $('apCpj_'+id).value.trim()
+  };
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvar',registro:reg});
+  loading(false);
+  if(resp.ok){Object.assign(r,reg);renderizar();toast('Abertura de pasta salva')}
+  else toast('Erro: '+resp.erro);
+}
+
+/* ===================== PDF unificado ===================== */
+async function exportarPdfUnificado(id){
+  loading(true,'Baixando documentos do Drive…');
+  let dados;
+  try{ dados = await apiPost({action:'docsParaPdf',id}); }
+  catch(e){loading(false);toast('Falha ao buscar documentos');return}
+  if(!dados.ok){loading(false);toast('Erro: '+dados.erro);return}
+  if(!dados.docs.length){loading(false);toast('Este cliente não possui documentos anexados');return}
+
+  loading(true,'Montando PDF unificado…');
+  const {PDFDocument,StandardFonts,rgb} = PDFLib;
+  const pdf = await PDFDocument.create();
+  const fonte = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const fonteN = await pdf.embedFont(StandardFonts.Helvetica);
+
+  // capa
+  const capa = pdf.addPage([595.28,841.89]);
+  capa.drawText('DOCUMENTOS DO CLIENTE',{x:60,y:740,size:20,font:fonte,color:rgb(.11,.16,.25)});
+  capa.drawText(String(dados.cliente||''),{x:60,y:705,size:16,font:fonteN});
+  if(dados.pastaCPJ) capa.drawText('Pasta CPJ: '+dados.pastaCPJ,{x:60,y:680,size:12,font:fonteN});
+  capa.drawText('Gerado em '+new Date().toLocaleString('pt-BR'),{x:60,y:660,size:10,font:fonteN,color:rgb(.4,.4,.4)});
+  let y=615;
+  capa.drawText('Conteúdo:',{x:60,y,size:12,font:fonte}); y-=20;
+  dados.docs.forEach(d=>{ if(y>60){capa.drawText('• '+d.categoria+' — '+d.nome,{x:70,y,size:10,font:fonteN}); y-=15;} });
+
+  let categoriaAtual='';
+  for(const d of dados.docs){
+    if(d.categoria!==categoriaAtual){
+      categoriaAtual=d.categoria;
+      const sep=pdf.addPage([595.28,841.89]);
+      sep.drawRectangle({x:0,y:395,width:595.28,height:60,color:rgb(.48,.18,.24)});
+      sep.drawText(categoriaAtual,{x:60,y:415,size:16,font:fonte,color:rgb(1,1,1)});
+    }
+    const bytes = Uint8Array.from(atob(d.base64),c=>c.charCodeAt(0));
+    try{
+      if(d.mime==='application/pdf'){
+        const doc = await PDFDocument.load(bytes,{ignoreEncryption:true});
+        const pags = await pdf.copyPages(doc,doc.getPageIndices());
+        pags.forEach(p=>pdf.addPage(p));
+      }else if(d.mime.startsWith('image/')){
+        const img = d.mime==='image/png' ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
+        const pg = pdf.addPage([595.28,841.89]);
+        const escl = Math.min((595.28-80)/img.width,(841.89-100)/img.height,1);
+        const w=img.width*escl,h=img.height*escl;
+        pg.drawText(d.nome,{x:40,y:810,size:9,font:fonteN,color:rgb(.4,.4,.4)});
+        pg.drawImage(img,{x:(595.28-w)/2,y:(841.89-60-h)/2+20,width:w,height:h});
+      }else{
+        const pg=pdf.addPage([595.28,841.89]);
+        pg.drawText('Arquivo não suportado no PDF: '+d.nome,{x:60,y:780,size:11,font:fonteN});
+      }
+    }catch(e){
+      const pg=pdf.addPage([595.28,841.89]);
+      pg.drawText('Não foi possível incluir: '+d.nome,{x:60,y:780,size:11,font:fonteN,color:rgb(.6,.1,.1)});
+    }
+  }
+
+  const saida = await pdf.save();
+  const blob = new Blob([saida],{type:'application/pdf'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='Documentos - '+(dados.cliente||'cliente')+(dados.pastaCPJ?(' - Pasta '+dados.pastaCPJ):'')+'.pdf';
+  a.click();
+  loading(false);
+  toast('PDF unificado gerado');
+}
+
+/* ===================== importação Excel ===================== */
+function importarExcel(input){
+  const file=input.files[0]; input.value='';
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const wb=XLSX.read(e.target.result,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const linhas=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+    prepararImportacao(linhas.filter(l=>l.some(c=>String(c).trim()!=='')));
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ===================== importação PDF ===================== */
+async function importarPdf(input){
+  const file=input.files[0]; input.value='';
+  if(!file)return;
+  loading(true,'Lendo PDF…');
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const buf=await file.arrayBuffer();
+    const doc=await pdfjsLib.getDocument({data:buf}).promise;
+    const linhas=[];
+    for(let p=1;p<=doc.numPages;p++){
+      const pg=await doc.getPage(p);
+      const tc=await pg.getTextContent();
+      // agrupa itens por posição vertical (linha) e ordena por horizontal
+      const mapa={};
+      tc.items.forEach(it=>{
+        const y=Math.round(it.transform[5]/3)*3;
+        (mapa[y]=mapa[y]||[]).push({x:it.transform[4],t:it.str});
+      });
+      Object.keys(mapa).map(Number).sort((a,b)=>b-a).forEach(y=>{
+        const itens=mapa[y].sort((a,b)=>a.x-b.x);
+        // separa em colunas quando há espaço grande entre itens
+        const cels=[]; let atual=''; let fimX=null;
+        itens.forEach(it=>{
+          if(fimX!==null && it.x-fimX>18){cels.push(atual.trim());atual=''}
+          atual+=(atual?' ':'')+it.t;
+          fimX=it.x+it.t.length*5;
+        });
+        if(atual.trim())cels.push(atual.trim());
+        if(cels.length)linhas.push(cels);
+      });
+    }
+    loading(false);
+    if(!linhas.length){toast('Não foi possível extrair texto deste PDF (pode ser digitalizado/imagem)');return}
+    prepararImportacao(linhas);
+  }catch(e){loading(false);toast('Erro ao ler o PDF')}
+}
+
+/* ===================== mapeamento e confirmação ===================== */
+function prepararImportacao(linhas){
+  if(!linhas.length){toast('Arquivo vazio');return}
+  const nCols=Math.max(...linhas.map(l=>l.length));
+  // detecta se a 1ª linha é cabeçalho e mapeia automaticamente
+  const cab = linhas[0].map(normaliza);
+  const auto = Array(nCols).fill('');
+  const dicionario = {
+    'DATA':'DATA','OBSERVACOES':'OBSERVACOES','OBSERVACAO':'OBSERVACOES','OBS':'OBSERVACOES',
+    'DATA SAIDA':'DATA_SAIDA','SAIDA':'DATA_SAIDA','NOME':'NOME','CLIENTE':'NOME',
+    'TELEFONE':'TELEFONE','FONE':'TELEFONE','CELULAR':'TELEFONE','EMPRESA':'EMPRESA',
+    'RESPONSAVEL':'RESPONSAVEL','PASTA':'PASTA','ADV ATENDIMENTO':'ADV_ATENDIMENTO',
+    'ADV':'ADV_ATENDIMENTO','ADVOGADO':'ADV_ATENDIMENTO','STATUS':'STATUS'
+  };
+  let temCabecalho=false;
+  cab.forEach((c,i)=>{if(dicionario[c]){auto[i]=dicionario[c];temCabecalho=true}});
+  const dados = temCabecalho?linhas.slice(1):linhas;
+  if(!temCabecalho){ // ordem padrão pedida
+    ['DATA','OBSERVACOES','DATA_SAIDA','NOME','TELEFONE','EMPRESA','RESPONSAVEL','PASTA','ADV_ATENDIMENTO','STATUS']
+      .forEach((c,i)=>{if(i<nCols)auto[i]=c});
+  }
+  importDados={linhas:dados,nCols};
+  $('mapaGrade').innerHTML = Array.from({length:nCols},(_,i)=>`
+    <div class="mapa-col">
+      <select data-col="${i}">${CAMPOS_IMPORT.map(([v,t])=>`<option value="${v}" ${auto[i]===v?'selected':''}>${t}</option>`).join('')}</select>
+      ${dados.slice(0,4).map(l=>`<div class="amostra">${esc(l[i]||'')}</div>`).join('')}
+    </div>`).join('');
+  $('impTotal').textContent = dados.length+' linha(s) serão importadas.'+(temCabecalho?' Cabeçalho detectado e ignorado.':'');
+  $('mImport').classList.add('aberto');
+}
+
+async function confirmarImportacao(){
+  const mapa=[...document.querySelectorAll('#mapaGrade select')].map(s=>s.value);
+  if(!mapa.includes('NOME')){toast('Defina qual coluna é o NOME');return}
+  const novos = importDados.linhas.map(l=>{
+    const reg={};
+    mapa.forEach((campo,i)=>{if(campo&&l[i]!==undefined)reg[campo]=String(l[i]).trim()});
+    return reg;
+  }).filter(r=>r.NOME);
+  if(!novos.length){toast('Nenhuma linha com NOME preenchido');return}
+  fecharModal('mImport');
+  loading(true,`Importando ${novos.length} registros…`);
+  try{
+    const r = await apiPost({action:'salvarLote',registros:novos});
+    if(r.ok){toast(r.total+' registros importados');await carregar()}
+    else toast('Erro: '+r.erro);
+  }catch(e){toast('Falha na importação')}
+  loading(false);
+}
+
+/* ===================== inicialização ===================== */
+(function init(){
+  const selStatus=$('f_STATUS');
+  const selFiltro=document.querySelector('select[data-f="STATUS"]');
+  Object.keys(STATUS_CORES).forEach(s=>{
+    selStatus.insertAdjacentHTML('beforeend',`<option>${s}</option>`);
+    selFiltro.insertAdjacentHTML('beforeend',`<option>${s}</option>`);
+  });
+  document.querySelectorAll('[data-f]').forEach(el=>{
+    el.addEventListener('input',renderizar);
+    el.addEventListener('change',renderizar);
+  });
+  document.querySelectorAll('.modal-fundo').forEach(m=>{
+    m.addEventListener('mousedown',e=>{if(e.target===m)m.classList.remove('aberto')});
+  });
+  carregar();
+})();
+</script>
+</body>
+</html>
