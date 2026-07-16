@@ -177,6 +177,7 @@ td.acao{white-space:nowrap}
     <button class="aba ativa" data-aba="atendimentos" onclick="trocarAba('atendimentos')">Atendimentos <span class="cont" id="contAtend">0</span></button>
     <button class="aba" data-aba="abertura" onclick="trocarAba('abertura')">Abertura de Pasta <span class="cont" id="contAbertura">0</span></button>
     <button class="aba" data-aba="iniciais" onclick="trocarAba('iniciais')">Iniciais para elaborar <span class="cont" id="contIniciais">0</span></button>
+    <button class="aba" data-aba="ajuizamento" onclick="trocarAba('ajuizamento')">Ajuizamento <span class="cont" id="contAjuiz">0</span></button>
   </div>
 </header>
 
@@ -245,6 +246,11 @@ td.acao{white-space:nowrap}
       <button class="sub-aba ativa" id="subPendentes" onclick="trocarSubAba('pendentes')">Em aberto</button>
       <button class="sub-aba" id="subHistorico" onclick="trocarSubAba('historico')">Pastas abertas</button>
     </div>
+    <span class="periodo-box">
+      <label for="filtroMesAp">Período:</label>
+      <input type="month" id="filtroMesAp" title="Em aberto: filtra pelo mês do fechamento · Pastas abertas: pelo mês da abertura">
+      <button class="btn btn-mini btn-borda" onclick="$('filtroMesAp').value='';renderizar()" title="Ver todos os meses">Todos</button>
+    </span>
     <div class="direita">
       <span style="font-size:12px">FECHOU entra aqui automaticamente · nº da pasta + documentação OK vai para Pastas abertas</span>
       <button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button>
@@ -256,8 +262,21 @@ td.acao{white-space:nowrap}
     <table>
       <thead>
         <tr>
-          <th>Nome</th><th>Telefone</th><th>Empresa</th><th>Documentação</th>
+          <th>Nome</th><th>Telefone</th><th>Empresa</th><th>Data fechamento</th><th>Documentação</th>
           <th>Data abertura</th><th>Nº Pasta CPJ</th><th>Ações</th>
+        </tr>
+        <tr class="filtros">
+          <th><input data-fa="NOME" placeholder="Filtrar"></th>
+          <th><input data-fa="TELEFONE" placeholder="Filtrar"></th>
+          <th><input data-fa="EMPRESA" placeholder="Filtrar"></th>
+          <th></th>
+          <th><select data-fa="DOC_SITUACAO">
+            <option value="">Todas</option>
+            <option value="DOCUMENTAÇÃO OK">DOCUMENTAÇÃO OK</option>
+            <option value="FALTANDO DOCUMENTAÇÃO">FALTANDO DOCUMENTAÇÃO</option>
+          </select></th>
+          <th></th><th></th>
+          <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosAp()" title="Limpar filtros">&#10005;</button></th>
         </tr>
       </thead>
       <tbody id="corpoAbertura"></tbody>
@@ -306,12 +325,37 @@ td.acao{white-space:nowrap}
       <thead>
         <tr>
           <th>Reclamante</th><th>Reclamado</th><th>Nº Pasta</th><th>Data saída</th>
-          <th style="min-width:280px">Observação</th><th>Status</th><th>Ações</th>
+          <th style="min-width:180px">Responsável pela inicial</th>
+          <th style="min-width:240px">Observação</th><th>Status</th><th>Ações</th>
         </tr>
       </thead>
       <tbody id="corpoIniciais"></tbody>
     </table>
     <div class="vazio" id="vazioIniciais" style="display:none">Nenhuma inicial para elaborar ainda.</div>
+  </div>
+</section>
+
+<!-- ================= ABA 4: AJUIZAMENTO ================= -->
+<section class="painel" id="painel-ajuizamento">
+  <div class="barra">
+    <span class="fechados-badge" id="badgeAjuizados">AJUIZADOS: 0</span>
+    <span class="fechados-badge badge-vermelho" id="badgeNaoAjuizados">NÃO AJUIZADOS: 0</span>
+    <div class="direita">
+      <span style="font-size:12px">Iniciais com status FEITO entram aqui automaticamente como NÃO AJUIZADO</span>
+      <button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button>
+    </div>
+  </div>
+  <div class="tabela-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Reclamante</th><th>Reclamado</th><th>Nº Pasta</th><th>Data saída</th>
+          <th>Data do ajuizamento</th><th>Status</th><th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="corpoAjuiz"></tbody>
+    </table>
+    <div class="vazio" id="vazioAjuiz" style="display:none">Nenhuma inicial feita ainda.</div>
   </div>
 </section>
 </main>
@@ -421,6 +465,7 @@ td.acao{white-space:nowrap}
           <label><input type="checkbox" id="novoAtend" checked> Atendimentos</label>
           <label><input type="checkbox" id="novoAbert"> Abertura de Pasta</label>
           <label><input type="checkbox" id="novoInic"> Iniciais</label>
+          <label><input type="checkbox" id="novoAjuiz"> Ajuizamento</label>
         </span>
         <button class="btn btn-mini btn-principal" onclick="adicionarUsuario()">+ Adicionar</button>
       </div>
@@ -566,8 +611,14 @@ function renderizar(){
   /* --- aba 2 --- */
   const fechados = registros.filter(r=>normaliza(r.STATUS)==='FECHOU');
   const noHistorico = r => normaliza(r.DOC_SITUACAO)==='DOCUMENTACAO OK' && String(r.PASTA_CPJ||'').trim()!=='';
-  const pendentes = fechados.filter(r=>!noHistorico(r));
-  const historico = fechados.filter(noHistorico);
+  const mesAp = $('filtroMesAp').value; // período mensal da aba 2
+  const fa = {};
+  document.querySelectorAll('[data-fa]').forEach(el=>{if(el.value)fa[el.dataset.fa]=normaliza(el.value)});
+  const pendentes = fechados.filter(r=>!noHistorico(r) &&
+    (!mesAp || dataISO(r.DATA_FECHAMENTO).slice(0,7)===mesAp) &&
+    Object.entries(fa).every(([c,v])=>normaliza(r[c]).includes(v)));
+  const historico = fechados.filter(r=>noHistorico(r) &&
+    (!mesAp || dataISO(r.DATA_ABERTURA).slice(0,7)===mesAp));
 
   $('badgeAbertas').textContent = 'PASTAS ABERTAS: '+historico.length;
   $('badgeNaoAbertas').textContent = 'PASTAS NÃO ABERTAS: '+pendentes.length;
@@ -578,6 +629,7 @@ function renderizar(){
     const cor = ok?'st-verde':(faltando?'st-amarelo':'');
     return `<tr class="${cor}">
       <td><b>${esc(r.NOME)}</b></td><td>${esc(r.TELEFONE)}</td><td>${esc(r.EMPRESA)}</td>
+      <td>${esc(dataBR(r.DATA_FECHAMENTO))}</td>
       <td style="min-width:250px">
         <select onchange="apMudaSituacao('${r.ID}',this)">
           <option value=""></option>
@@ -631,6 +683,7 @@ function renderizar(){
       <td><b>${esc(r.EMPRESA)}</b></td>
       <td>${esc(r.PASTA_CPJ)}</td>
       <td>${esc(dataBR(r.DATA_SAIDA))}</td>
+      <td><input style="width:100%" id="iniResp_${r.ID}" placeholder="Responsável" value="${esc(r.INICIAL_RESP||'')}"></td>
       <td><input style="width:100%" id="iniObs_${r.ID}" placeholder="Observação" value="${esc(r.INICIAL_OBS||'')}"></td>
       <td>
         <select onchange="salvarInicialStatus('${r.ID}',this.value)">
@@ -653,6 +706,35 @@ function renderizar(){
   $('badgeIniFeitos').textContent = 'FEITOS: '+historico.filter(r=>statusIni(r)==='FEITO').length;
   $('vazioIniciais').style.display = historico.length?'none':'block';
   $('contIniciais').textContent = historico.length;
+
+  /* --- aba 4: ajuizamento --- */
+  const feitas = historico.filter(r=>statusIni(r)==='FEITO');
+  const statusAj = r => normaliza(r.AJUIZ_STATUS)||'NAO AJUIZADO'; // padrão: NÃO AJUIZADO (vermelho)
+  $('corpoAjuiz').innerHTML = feitas.map(r=>{
+    const aj = statusAj(r)==='AJUIZADO';
+    return `<tr class="${aj?'st-verde':'st-vermelho'}">
+      <td><b>${esc(r.NOME)}</b></td>
+      <td><b>${esc(r.EMPRESA)}</b></td>
+      <td>${esc(r.PASTA_CPJ)}</td>
+      <td>${esc(dataBR(r.DATA_SAIDA))}</td>
+      <td><input type="date" class="ap-input" id="ajData_${r.ID}" value="${esc(dataISO(r.AJUIZ_DATA)||r.AJUIZ_DATA||'')}"></td>
+      <td>
+        <select onchange="salvarAjuizStatus('${r.ID}',this.value)">
+          <option value="NÃO AJUIZADO" ${!aj?'selected':''}>NÃO AJUIZADO</option>
+          <option value="AJUIZADO" ${aj?'selected':''}>AJUIZADO</option>
+        </select>
+      </td>
+      <td class="acao">
+        <button class="btn btn-mini btn-principal" onclick="salvarAjuizData('${r.ID}')">Salvar</button>
+        <button class="btn btn-mini btn-borda" onclick="exportarPdfUnificado('${r.ID}')" title="Exportar todos os documentos anexados em um único PDF">&#128196; PDF unificado</button>
+        <button class="btn btn-mini btn-borda" onclick="abrirFicha('${r.ID}')">Ficha</button>
+      </td>
+    </tr>`}).join('');
+  const nAjuizados = feitas.filter(r=>statusAj(r)==='AJUIZADO').length;
+  $('badgeAjuizados').textContent = 'AJUIZADOS: '+nAjuizados;
+  $('badgeNaoAjuizados').textContent = 'NÃO AJUIZADOS: '+(feitas.length-nAjuizados);
+  $('vazioAjuiz').style.display = feitas.length?'none':'block';
+  $('contAjuiz').textContent = feitas.length;
 }
 
 /* ===================== ficha (modal) ===================== */
@@ -815,6 +897,10 @@ function trocarSubAba(qual){
   $('wrapPendentes').style.display = qual==='pendentes'?'block':'none';
   $('wrapHistorico').style.display = qual==='historico'?'block':'none';
 }
+function limparFiltrosAp(){
+  document.querySelectorAll('[data-fa]').forEach(el=>el.value='');
+  renderizar();
+}
 function limparFiltrosHist(){
   document.querySelectorAll('[data-fh]').forEach(el=>el.value='');
   $('fHistDe').value='';$('fHistAte').value='';
@@ -839,13 +925,33 @@ async function salvarInicialStatus(id,valor){
   else toast('Erro: '+resp.erro);
 }
 
+async function salvarAjuizStatus(id,valor){
+  const r = registros.find(x=>x.ID===id);
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvar',registro:{ID:id,AJUIZ_STATUS:valor}});
+  loading(false);
+  if(resp.ok){if(r)r.AJUIZ_STATUS=valor;renderizar();toast('Status: '+valor)}
+  else toast('Erro: '+resp.erro);
+}
+
+async function salvarAjuizData(id){
+  const r = registros.find(x=>x.ID===id);
+  const data = dataBR($('ajData_'+id).value);
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvar',registro:{ID:id,AJUIZ_DATA:data}});
+  loading(false);
+  if(resp.ok){if(r)r.AJUIZ_DATA=data;renderizar();toast('Data do ajuizamento salva')}
+  else toast('Erro: '+resp.erro);
+}
+
 async function salvarInicialObs(id){
   const r = registros.find(x=>x.ID===id);
   const obs = $('iniObs_'+id).value.trim();
+  const respIni = $('iniResp_'+id).value.trim();
   loading(true,'Salvando…');
-  const resp = await apiPost({action:'salvar',registro:{ID:id,INICIAL_OBS:obs}});
+  const resp = await apiPost({action:'salvar',registro:{ID:id,INICIAL_OBS:obs,INICIAL_RESP:respIni}});
   loading(false);
-  if(resp.ok){if(r)r.INICIAL_OBS=obs;toast('Observação salva')}
+  if(resp.ok){if(r){r.INICIAL_OBS=obs;r.INICIAL_RESP=respIni}toast('Salvo')}
   else toast('Erro: '+resp.erro);
 }
 
@@ -1061,7 +1167,7 @@ function aplicarLogin(){
   document.querySelectorAll('.aba').forEach(b=>{
     b.style.display = pode(b.dataset.aba)?'inline-flex':'none';
   });
-  const primeira = ['atendimentos','abertura','iniciais'].find(pode) || 'atendimentos';
+  const primeira = ['atendimentos','abertura','iniciais','ajuizamento'].find(pode) || 'atendimentos';
   trocarAba(primeira);
   carregar();
 }
@@ -1102,6 +1208,7 @@ function renderUsuarios(){
         <label><input type="checkbox" id="uAtend_${i}" ${abas.includes('atendimentos')?'checked':''}> Atendimentos</label>
         <label><input type="checkbox" id="uAbert_${i}" ${abas.includes('abertura')?'checked':''}> Abertura de Pasta</label>
         <label><input type="checkbox" id="uInic_${i}" ${abas.includes('iniciais')?'checked':''}> Iniciais</label>
+        <label><input type="checkbox" id="uAjuiz_${i}" ${abas.includes('ajuizamento')?'checked':''}> Ajuizamento</label>
       </span>
       <button class="btn btn-mini btn-borda" onclick="salvarUsuario(${i})">Salvar</button>
       <button class="btn btn-mini btn-perigo" onclick="excluirUsuario(${i})">Excluir</button>
@@ -1109,17 +1216,18 @@ function renderUsuarios(){
   }).join('') || '<div style="font-size:12.5px;color:var(--cinza);margin-bottom:8px">Nenhum usuário cadastrado ainda.</div>';
 }
 
-function abasMarcadas(atendId,abertId,inicId){
+function abasMarcadas(atendId,abertId,inicId,ajuizId){
   const a=[];
   if($(atendId).checked)a.push('atendimentos');
   if($(abertId).checked)a.push('abertura');
   if($(inicId).checked)a.push('iniciais');
+  if($(ajuizId).checked)a.push('ajuizamento');
   return a.join(',');
 }
 
 async function adicionarUsuario(){
   const nome=$('novoNome').value.trim(), senha=$('novaSenha').value.trim();
-  const abas=abasMarcadas('novoAtend','novoAbert','novoInic');
+  const abas=abasMarcadas('novoAtend','novoAbert','novoInic','novoAjuiz');
   if(!nome||!senha){toast('Informe nome e senha');return}
   if(!abas){toast('Marque ao menos uma aba');return}
   loading(true,'Salvando…');
@@ -1131,7 +1239,7 @@ async function adicionarUsuario(){
 
 async function salvarUsuario(i){
   const nome=$('uNome_'+i).value.trim(), senha=$('uSenha_'+i).value.trim();
-  const abas=abasMarcadas('uAtend_'+i,'uAbert_'+i,'uInic_'+i);
+  const abas=abasMarcadas('uAtend_'+i,'uAbert_'+i,'uInic_'+i,'uAjuiz_'+i);
   if(!nome||!senha){toast('Informe nome e senha');return}
   if(!abas){toast('Marque ao menos uma aba');return}
   loading(true,'Salvando…');
@@ -1168,9 +1276,13 @@ async function excluirUsuario(i){
   });
   $('filtroMes').addEventListener('change',renderizar);
   $('filtroMes').addEventListener('input',renderizar);
-  ['fDataDe','fDataAte','fHistDe','fHistAte'].forEach(id=>{
+  ['fDataDe','fDataAte','fHistDe','fHistAte','filtroMesAp'].forEach(id=>{
     $(id).addEventListener('change',renderizar);
     $(id).addEventListener('input',renderizar);
+  });
+  document.querySelectorAll('[data-fa]').forEach(el=>{
+    el.addEventListener('input',renderizar);
+    el.addEventListener('change',renderizar);
   });
   document.querySelectorAll('.modal-fundo').forEach(m=>{
     m.addEventListener('mousedown',e=>{if(e.target===m)m.classList.remove('aberto')});
