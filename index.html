@@ -22,6 +22,8 @@
   --verde-bg:#d9f2df;  --verde-tx:#14532d;  --verde-bd:#86c79a;
   --amarelo-bg:#fcf3ce; --amarelo-tx:#713f12; --amarelo-bd:#e3c96a;
   --vermelho-bg:#fadddd;--vermelho-tx:#7f1d1d;--vermelho-bd:#e59a9a;
+  --azul-bg:#d8eaf8;   --azul-tx:#1d4e6e;   --azul-bd:#8fc0e0;
+  --cinza-bg:#e6e8eb;  --cinza-tx:#42484f;  --cinza-bd:#b4bac2;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Archivo',sans-serif;background:var(--papel);color:var(--tinta);font-size:14px}
@@ -81,10 +83,14 @@ td.acao{white-space:nowrap}
 .st-verde td{background:var(--verde-bg);color:var(--verde-tx)}
 .st-amarelo td{background:var(--amarelo-bg);color:var(--amarelo-tx)}
 .st-vermelho td{background:var(--vermelho-bg);color:var(--vermelho-tx)}
+.st-azul td{background:var(--azul-bg);color:var(--azul-tx)}
+.st-cinza td{background:var(--cinza-bg);color:var(--cinza-tx)}
 .pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;white-space:nowrap;border:1px solid transparent}
 .pill.verde{background:#fff;color:var(--verde-tx);border-color:var(--verde-bd)}
 .pill.amarelo{background:#fff;color:var(--amarelo-tx);border-color:var(--amarelo-bd)}
 .pill.vermelho{background:#fff;color:var(--vermelho-tx);border-color:var(--vermelho-bd)}
+.pill.azul{background:#fff;color:var(--azul-tx);border-color:var(--azul-bd)}
+.pill.cinza{background:#fff;color:var(--cinza-tx);border-color:var(--cinza-bd)}
 .docs-chip{font-size:11.5px;background:#fff;border:1px solid var(--linha);border-radius:99px;padding:2px 8px;color:var(--cinza)}
 .vazio{padding:40px;text-align:center;color:var(--cinza)}
 
@@ -548,16 +554,16 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxy32gPLb_2ZlUSehESqU9u
 /* ===================== constantes ===================== */
 const STATUS_CORES = {
   'FECHOU':'verde',
+  'PENDENTE ASSINATURA':'azul',
   'SEM INTERESSE':'vermelho',
-  'PENDENTE':'amarelo',
   'SEM DIREITO':'vermelho',
-  'TENTOU LIGAR E ENVIOU MSG':'vermelho',
+  'TENTOU LIGAR E ENVIOU MSG':'amarelo',
   'TENTOU LIGAR E NÃO ENVIOU MENSAGEM':'amarelo',
-  'PENDENTE ASSINATURA':'amarelo',
   'JÁ TEM AÇÃO':'vermelho',
-  'EM ANÁLISE':'amarelo',
-  'RETORNAR':'amarelo',
-  'MARCADO OUTRO DIA':'amarelo'
+  'EM ANÁLISE':'cinza',
+  'RETORNAR':'cinza',
+  'PENDENTE':'cinza',
+  'MARCADO OUTRO DIA':'cinza'
 };
 const DOCS_OBRIG = [
   ['DOC_CTPS','CTPS (Carteira de Trabalho)'],
