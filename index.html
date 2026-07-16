@@ -199,6 +199,10 @@ td.acao{white-space:nowrap}
     </span>
     <div class="direita">
       <span id="resumoFiltro"></span>
+      <span class="master-so" style="display:none">
+        <button class="btn btn-mini btn-borda" onclick="exportarExcel('atendimentos')" title="Exportar os dados filtrados em Excel">&#11015; Excel</button>
+        <button class="btn btn-mini btn-borda" onclick="exportarPdfTabela('atendimentos')" title="Exportar os dados filtrados em PDF">&#11015; PDF</button>
+      </span>
       <button class="btn btn-mini btn-borda doc-add" style="position:relative">
         Importar Excel/CSV <input type="file" accept=".xlsx,.xls,.csv" onchange="importarExcel(this)">
       </button>
@@ -258,6 +262,10 @@ td.acao{white-space:nowrap}
     </span>
     <div class="direita">
       <span style="font-size:12px">FECHOU entra aqui automaticamente · nº da pasta + documentação OK vai para Pastas abertas</span>
+      <span class="master-so" style="display:none">
+        <button class="btn btn-mini btn-borda" onclick="exportarExcel('abertura')" title="Exportar a lista visível em Excel">&#11015; Excel</button>
+        <button class="btn btn-mini btn-borda" onclick="exportarPdfTabela('abertura')" title="Exportar a lista visível em PDF">&#11015; PDF</button>
+      </span>
       <button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button>
     </div>
   </div>
@@ -267,20 +275,20 @@ td.acao{white-space:nowrap}
     <table>
       <thead>
         <tr>
-          <th>Nome</th><th>Telefone</th><th>Empresa</th><th>Data recebido</th><th>Documentação</th>
-          <th>Nº Pasta CPJ</th><th>Ações</th>
+          <th>Data recebido</th><th>Reclamante</th><th>Reclamado</th><th>Telefone</th>
+          <th>Nº Pasta CPJ</th><th>Documentação</th><th>Ações</th>
         </tr>
         <tr class="filtros">
+          <th></th>
           <th><input data-fa="NOME" placeholder="Filtrar"></th>
-          <th><input data-fa="TELEFONE" placeholder="Filtrar"></th>
           <th><input data-fa="EMPRESA" placeholder="Filtrar"></th>
+          <th><input data-fa="TELEFONE" placeholder="Filtrar"></th>
           <th></th>
           <th><select data-fa="DOC_SITUACAO">
             <option value="">Todas</option>
             <option value="DOCUMENTAÇÃO OK">DOCUMENTAÇÃO OK</option>
             <option value="FALTANDO DOCUMENTAÇÃO">FALTANDO DOCUMENTAÇÃO</option>
           </select></th>
-          <th></th>
           <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosAp()" title="Limpar filtros">&#10005;</button></th>
         </tr>
       </thead>
@@ -294,16 +302,17 @@ td.acao{white-space:nowrap}
     <table>
       <thead>
         <tr>
-          <th>Data abertura</th><th>Nº Pasta CPJ</th><th>Nome</th><th>Telefone</th><th>Empresa</th><th>Ações</th>
+          <th>Data abertura</th><th>Reclamante</th><th>Reclamado</th><th>Telefone</th><th>Nº Pasta CPJ</th><th>Ações</th>
         </tr>
         <tr class="filtros">
           <th class="th-de-ate">
             <input type="date" id="fHistDe" title="De (data inicial)">
             <input type="date" id="fHistAte" title="Até (data final)">
           </th>
-          <th><input data-fh="PASTA_CPJ" placeholder="Filtrar nº pasta"></th>
           <th><input data-fh="NOME" placeholder="Filtrar"></th>
-          <th></th><th></th>
+          <th><input data-fh="EMPRESA" placeholder="Filtrar"></th>
+          <th></th>
+          <th><input data-fh="PASTA_CPJ" placeholder="Filtrar nº pasta"></th>
           <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosHist()" title="Limpar filtros">&#10005;</button></th>
         </tr>
       </thead>
@@ -321,8 +330,17 @@ td.acao{white-space:nowrap}
     <span class="fechados-badge badge-amarelo" id="badgeIniPendDoc">PEND. DOCUMENTOS: 0</span>
     <span class="fechados-badge badge-amarelo" id="badgeIniPendInfo">PEND. INFORMAÇÕES: 0</span>
     <span class="fechados-badge" id="badgeIniFeitos">FEITOS: 0</span>
+    <span class="periodo-box">
+      <label for="filtroMesIni">Período:</label>
+      <input type="month" id="filtroMesIni" title="Filtra pelo mês da abertura da pasta">
+      <button class="btn btn-mini btn-borda" onclick="$('filtroMesIni').value='';renderizar()" title="Ver todos os meses">Todos</button>
+    </span>
     <div class="direita">
       <span style="font-size:12px">Pastas abertas entram aqui automaticamente como PENDENTE</span>
+      <span class="master-so" style="display:none">
+        <button class="btn btn-mini btn-borda" onclick="exportarExcel('iniciais')" title="Exportar os dados filtrados em Excel">&#11015; Excel</button>
+        <button class="btn btn-mini btn-borda" onclick="exportarPdfTabela('iniciais')" title="Exportar os dados filtrados em PDF">&#11015; PDF</button>
+      </span>
       <button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button>
     </div>
   </div>
@@ -330,11 +348,13 @@ td.acao{white-space:nowrap}
     <table>
       <thead>
         <tr>
+          <th>Data recebido</th>
           <th>Reclamante</th><th>Reclamado</th><th>Nº Pasta</th><th>Data saída</th>
           <th style="min-width:180px">Responsável pela inicial</th>
           <th style="min-width:240px">Observação</th><th>Status</th><th>Ações</th>
         </tr>
         <tr class="filtros">
+          <th></th>
           <th><input data-fi="NOME" placeholder="Filtrar"></th>
           <th><input data-fi="EMPRESA" placeholder="Filtrar"></th>
           <th><input data-fi="PASTA_CPJ" placeholder="Filtrar"></th>
@@ -362,8 +382,17 @@ td.acao{white-space:nowrap}
   <div class="barra">
     <span class="fechados-badge" id="badgeAjuizados">AJUIZADOS: 0</span>
     <span class="fechados-badge badge-vermelho" id="badgeNaoAjuizados">NÃO AJUIZADOS: 0</span>
+    <span class="periodo-box">
+      <label for="filtroMesAj">Período:</label>
+      <input type="month" id="filtroMesAj" title="Filtra pelo mês em que a inicial foi feita (Data recebido)">
+      <button class="btn btn-mini btn-borda" onclick="$('filtroMesAj').value='';renderizar()" title="Ver todos os meses">Todos</button>
+    </span>
     <div class="direita">
       <span style="font-size:12px">Iniciais com status FEITO entram aqui automaticamente como NÃO AJUIZADO</span>
+      <span class="master-so" style="display:none">
+        <button class="btn btn-mini btn-borda" onclick="exportarExcel('ajuizamento')" title="Exportar os dados filtrados em Excel">&#11015; Excel</button>
+        <button class="btn btn-mini btn-borda" onclick="exportarPdfTabela('ajuizamento')" title="Exportar os dados filtrados em PDF">&#11015; PDF</button>
+      </span>
       <button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button>
     </div>
   </div>
@@ -371,16 +400,16 @@ td.acao{white-space:nowrap}
     <table>
       <thead>
         <tr>
-          <th>Reclamante</th><th>Reclamado</th><th>Nº Pasta</th><th>Data saída</th>
           <th>Data recebido</th>
+          <th>Reclamante</th><th>Reclamado</th><th>Nº Pasta</th><th>Data saída</th>
           <th>Data do ajuizamento</th><th>Status</th><th>Ações</th>
         </tr>
         <tr class="filtros">
+          <th></th>
           <th><input data-fj="NOME" placeholder="Filtrar"></th>
           <th><input data-fj="EMPRESA" placeholder="Filtrar"></th>
           <th><input data-fj="PASTA_CPJ" placeholder="Filtrar"></th>
           <th><input type="date" id="fAjSaida" title="Filtrar pela data de saída"></th>
-          <th></th>
           <th><input type="date" id="fAjData" title="Filtrar pela data do ajuizamento"></th>
           <th><select id="fAjStatus">
             <option value="">Todos</option>
@@ -673,8 +702,9 @@ function renderizar(){
     const faltando = normaliza(r.DOC_SITUACAO)==='FALTANDO DOCUMENTACAO';
     const cor = ok?'st-verde':(faltando?'st-amarelo':'');
     return `<tr class="${cor}">
-      <td><b>${esc(r.NOME)}</b></td><td>${esc(r.TELEFONE)}</td><td>${esc(r.EMPRESA)}</td>
       <td>${esc(dataBR(r.DATA_FECHAMENTO))}</td>
+      <td><b>${esc(r.NOME)}</b></td><td>${esc(r.EMPRESA)}</td><td>${esc(r.TELEFONE)}</td>
+      <td><input class="ap-input" id="apCpj_${r.ID}" placeholder="Nº pasta" value="${esc(r.PASTA_CPJ)}"></td>
       <td style="min-width:250px">
         <select onchange="apMudaSituacao('${r.ID}',this)">
           <option value=""></option>
@@ -683,7 +713,6 @@ function renderizar(){
         </select>
         <input class="ap-falta ${faltando?'visivel':''}" id="apFalta_${r.ID}" placeholder="Qual documentação está faltando?" value="${esc(r.DOC_FALTANDO)}">
       </td>
-      <td><input class="ap-input" id="apCpj_${r.ID}" placeholder="Nº pasta" value="${esc(r.PASTA_CPJ)}"></td>
       <td class="acao">
         <button class="btn btn-mini btn-principal" onclick="apSalvar('${r.ID}')">Salvar</button>
         <button class="btn btn-mini btn-borda" onclick="exportarPdfUnificado('${r.ID}')" title="Exportar todos os documentos anexados em um único PDF">&#128196; PDF unificado</button>
@@ -703,8 +732,9 @@ function renderizar(){
       Object.entries(fh).every(([c,v])=>normaliza(r[c]).includes(v));
   });
   $('corpoHistorico').innerHTML = histVisiveis.map(r=>`<tr class="st-verde">
-      <td>${esc(dataBR(r.DATA_ABERTURA))}</td><td><b>${esc(r.PASTA_CPJ)}</b></td>
-      <td>${esc(r.NOME)}</td><td>${esc(r.TELEFONE)}</td><td>${esc(r.EMPRESA)}</td>
+      <td>${esc(dataBR(r.DATA_ABERTURA))}</td>
+      <td><b>${esc(r.NOME)}</b></td><td>${esc(r.EMPRESA)}</td><td>${esc(r.TELEFONE)}</td>
+      <td><b>${esc(r.PASTA_CPJ)}</b></td>
       <td class="acao">
         <button class="btn btn-mini btn-borda" onclick="exportarPdfUnificado('${r.ID}')" title="Exportar todos os documentos anexados em um único PDF">&#128196; PDF unificado</button>
         <button class="btn btn-mini btn-borda" onclick="abrirFicha('${r.ID}')">Ficha</button>
@@ -725,10 +755,11 @@ function renderizar(){
   };
   const fi = {};
   document.querySelectorAll('[data-fi]').forEach(el=>{if(el.value)fi[el.dataset.fi]=normaliza(el.value)});
-  const iniData=$('fIniData').value, iniSt=$('fIniStatus').value;
+  const iniData=$('fIniData').value, iniSt=$('fIniStatus').value, mesIni=$('filtroMesIni').value;
   const iniVisiveis = pastasAbertas.filter(r=>{
     const dISO = dataISO(r.DATA_SAIDA);
-    return (!iniData || dISO===iniData) &&
+    return (!mesIni || dataISO(r.DATA_ABERTURA).slice(0,7)===mesIni) &&
+      (!iniData || dISO===iniData) &&
       (!iniSt || statusIni(r)===iniSt) &&
       Object.entries(fi).every(([c,v])=>normaliza(r[c]).includes(v));
   });
@@ -736,6 +767,7 @@ function renderizar(){
     const st = statusIni(r);
     const cor = INI_CORES[st]||'vermelho';
     return `<tr class="st-${cor}">
+      <td>${esc(dataBR(r.DATA_ABERTURA))}</td>
       <td><b>${esc(r.NOME)}</b></td>
       <td><b>${esc(r.EMPRESA)}</b></td>
       <td>${esc(r.PASTA_CPJ)}</td>
@@ -771,10 +803,11 @@ function renderizar(){
   const statusAj = r => normaliza(r.AJUIZ_STATUS)||'NAO AJUIZADO'; // padrão: NÃO AJUIZADO (vermelho)
   const fj = {};
   document.querySelectorAll('[data-fj]').forEach(el=>{if(el.value)fj[el.dataset.fj]=normaliza(el.value)});
-  const ajSaida=$('fAjSaida').value, ajData=$('fAjData').value, ajSt=$('fAjStatus').value;
+  const ajSaida=$('fAjSaida').value, ajData=$('fAjData').value, ajSt=$('fAjStatus').value, mesAj=$('filtroMesAj').value;
   const ajVisiveis = feitas.filter(r=>{
     const dSaida = dataISO(r.DATA_SAIDA), dAj = dataISO(r.AJUIZ_DATA);
-    return (!ajSaida || dSaida===ajSaida) &&
+    return (!mesAj || dataISO(r.DATA_FEITO).slice(0,7)===mesAj) &&
+      (!ajSaida || dSaida===ajSaida) &&
       (!ajData || dAj===ajData) &&
       (!ajSt || statusAj(r)===ajSt) &&
       Object.entries(fj).every(([c,v])=>normaliza(r[c]).includes(v));
@@ -782,11 +815,11 @@ function renderizar(){
   $('corpoAjuiz').innerHTML = ajVisiveis.map(r=>{
     const aj = statusAj(r)==='AJUIZADO';
     return `<tr class="${aj?'st-verde':'st-vermelho'}">
+      <td>${esc(dataBR(r.DATA_FEITO))}</td>
       <td><b>${esc(r.NOME)}</b></td>
       <td><b>${esc(r.EMPRESA)}</b></td>
       <td>${esc(r.PASTA_CPJ)}</td>
       <td>${esc(dataBR(r.DATA_SAIDA))}</td>
-      <td>${esc(dataBR(r.DATA_FEITO))}</td>
       <td><input type="date" class="ap-input" id="ajData_${r.ID}" value="${esc(dataISO(r.AJUIZ_DATA)||r.AJUIZ_DATA||'')}"></td>
       <td>
         <select onchange="salvarAjuizStatus('${r.ID}',this.value)">
@@ -802,6 +835,7 @@ function renderizar(){
   const nAjuizados = ajVisiveis.filter(r=>statusAj(r)==='AJUIZADO').length;
   $('badgeAjuizados').textContent = 'AJUIZADOS: '+nAjuizados;
   $('badgeNaoAjuizados').textContent = 'NÃO AJUIZADOS: '+(ajVisiveis.length-nAjuizados);
+  dadosExport = {atendimentos:visiveis, aberturaPendentes:pendentes, pastasAbertas:histVisiveis, iniciais:iniVisiveis, ajuizamento:ajVisiveis};
   $('vazioAjuiz').style.display = ajVisiveis.length?'none':'block';
   $('contAjuiz').textContent = feitas.length;
 }
@@ -961,6 +995,7 @@ async function removerDoc(coluna,arquivoId){
 
 /* ===================== abertura de pasta ===================== */
 function trocarSubAba(qual){
+  subAtual = qual;
   $('subPendentes').classList.toggle('ativa',qual==='pendentes');
   $('subHistorico').classList.toggle('ativa',qual==='historico');
   $('wrapPendentes').style.display = qual==='pendentes'?'block':'none';
@@ -1213,6 +1248,117 @@ async function confirmarImportacao(){
   loading(false);
 }
 
+/* ===================== exportação (master) ===================== */
+let dadosExport = {};
+let subAtual = 'pendentes';
+
+const EXPORT_DEFS = {
+  atendimentos: {titulo:'Atendimentos', colunas:[
+    ['DATA','Data',60],['HORARIO','Horário',45],['NOME','Nome',120],['TELEFONE','Telefone',75],
+    ['EMPRESA','Empresa',100],['RESPONSAVEL','Responsável',75],['PASTA','Pasta',50],
+    ['ADV_ATENDIMENTO','Adv. Atendimento',80],['DATA_SAIDA','Data saída',60],['STATUS','Status',95],
+    ['INDICACAO','Indicação',70],['OBSERVACOES','Observações',120]]},
+  aberturaPendentes: {titulo:'Abertura de Pasta - Em aberto', colunas:[
+    ['DATA_FECHAMENTO','Data recebido',80],['NOME','Reclamante',150],['EMPRESA','Reclamado',140],
+    ['TELEFONE','Telefone',90],['PASTA_CPJ','Nº Pasta CPJ',80],['DOC_SITUACAO','Documentação',120],
+    ['DOC_FALTANDO','Doc. faltando',130]]},
+  pastasAbertas: {titulo:'Pastas abertas', colunas:[
+    ['DATA_ABERTURA','Data abertura',85],['NOME','Reclamante',170],['EMPRESA','Reclamado',170],
+    ['TELEFONE','Telefone',100],['PASTA_CPJ','Nº Pasta CPJ',85]]},
+  iniciais: {titulo:'Iniciais para elaborar', colunas:[
+    ['DATA_ABERTURA','Data recebido',70],['NOME','Reclamante',135],['EMPRESA','Reclamado',135],
+    ['PASTA_CPJ','Nº Pasta',65],['DATA_SAIDA','Data saída',70],['INICIAL_RESP','Responsável pela inicial',100],
+    ['INICIAL_OBS','Observação',145],['INICIAL_STATUS','Status',110]]},
+  ajuizamento: {titulo:'Ajuizamento', colunas:[
+    ['DATA_FEITO','Data recebido',70],['NOME','Reclamante',140],['EMPRESA','Reclamado',140],
+    ['PASTA_CPJ','Nº Pasta',65],['DATA_SAIDA','Data saída',70],
+    ['AJUIZ_DATA','Data do ajuizamento',85],['AJUIZ_STATUS','Status',90]]}
+};
+
+function baseExport(aba){
+  if(aba==='abertura') return subAtual==='historico' ? 'pastasAbertas' : 'aberturaPendentes';
+  return aba;
+}
+function valorExport(r,campo){
+  if(['DATA','DATA_SAIDA','DATA_FECHAMENTO','DATA_ABERTURA','DATA_FEITO','AJUIZ_DATA'].includes(campo)) return dataBR(r[campo]);
+  if(campo==='INICIAL_STATUS') return r.INICIAL_STATUS||'PENDENTE';
+  if(campo==='AJUIZ_STATUS') return r.AJUIZ_STATUS||'NÃO AJUIZADO';
+  return String(r[campo]??'');
+}
+
+function exportarExcel(aba){
+  const chave = baseExport(aba);
+  const def = EXPORT_DEFS[chave];
+  const dados = dadosExport[chave]||[];
+  if(!dados.length){toast('Não há dados para exportar');return}
+  const linhas = dados.map(r=>{
+    const o={};
+    def.colunas.forEach(([campo,rotulo])=>o[rotulo]=valorExport(r,campo));
+    return o;
+  });
+  const ws = XLSX.utils.json_to_sheet(linhas);
+  ws['!cols'] = def.colunas.map(c=>({wch:Math.max(12,c[1].length+4)}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, def.titulo.slice(0,31));
+  XLSX.writeFile(wb, def.titulo+' - '+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.xlsx');
+  toast('Excel exportado ('+dados.length+' registros)');
+}
+
+async function exportarPdfTabela(aba){
+  const chave = baseExport(aba);
+  const def = EXPORT_DEFS[chave];
+  const dados = dadosExport[chave]||[];
+  if(!dados.length){toast('Não há dados para exportar');return}
+  loading(true,'Gerando PDF…');
+  const {PDFDocument,StandardFonts,rgb} = PDFLib;
+  const pdf = await PDFDocument.create();
+  const fB = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const fN = await pdf.embedFont(StandardFonts.Helvetica);
+  const PG_W=841.89, PG_H=595.28, MG=30; // A4 paisagem
+  const totalW = def.colunas.reduce((s,c)=>s+c[2],0);
+  const escala = (PG_W-2*MG)/totalW;
+  const tam = 7.5, altura = 14;
+  const limpar = s => String(s??'').replace(/[\r\n]+/g,' ');
+  const cortar = (s,w) => {
+    s = limpar(s);
+    while(s && fN.widthOfTextAtSize(s,tam) > w-6) s = s.slice(0,-1);
+    return s;
+  };
+  let pg, y;
+  const novaPagina = () => {
+    pg = pdf.addPage([PG_W,PG_H]);
+    y = PG_H-MG;
+    pg.drawText(def.titulo+' — '+new Date().toLocaleDateString('pt-BR'),{x:MG,y:y-4,size:11,font:fB,color:rgb(.11,.16,.25)});
+    y -= 22;
+    let x = MG;
+    pg.drawRectangle({x:MG,y:y-4,width:PG_W-2*MG,height:altura,color:rgb(.11,.16,.25)});
+    def.colunas.forEach(c=>{
+      pg.drawText(cortar(c[1],c[2]*escala),{x:x+3,y:y,size:tam,font:fB,color:rgb(1,1,1)});
+      x += c[2]*escala;
+    });
+    y -= altura;
+  };
+  novaPagina();
+  dados.forEach((r,i)=>{
+    if(y < MG+altura) novaPagina();
+    if(i%2===1) pg.drawRectangle({x:MG,y:y-4,width:PG_W-2*MG,height:altura,color:rgb(.94,.95,.96)});
+    let x = MG;
+    def.colunas.forEach(c=>{
+      pg.drawText(cortar(valorExport(r,c[0]),c[2]*escala),{x:x+3,y:y,size:tam,font:fN,color:rgb(.13,.15,.17)});
+      x += c[2]*escala;
+    });
+    y -= altura;
+  });
+  const saida = await pdf.save();
+  const blob = new Blob([saida],{type:'application/pdf'});
+  const el = document.createElement('a');
+  el.href = URL.createObjectURL(blob);
+  el.download = def.titulo+' - '+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.pdf';
+  el.click();
+  loading(false);
+  toast('PDF exportado ('+dados.length+' registros)');
+}
+
 /* ===================== login / usuários ===================== */
 let usuario = null;   // {nome, master, abas:[...]}
 let listaUsuariosCache = [];
@@ -1240,6 +1386,7 @@ function aplicarLogin(){
   $('loginSenha').value='';
   $('usuLogado').textContent = usuario.nome;
   $('btnUsuarios').style.display = usuario.master?'inline-flex':'none';
+  document.querySelectorAll('.master-so').forEach(el=>el.style.display = usuario.master?'inline-flex':'none');
   // abas permitidas
   const pode = a => usuario.master || usuario.abas.includes(a);
   document.querySelectorAll('.aba').forEach(b=>{
@@ -1366,7 +1513,7 @@ async function excluirUsuario(i){
     el.addEventListener('input',renderizar);
     el.addEventListener('change',renderizar);
   });
-  ['fIniData','fIniStatus','fAjSaida','fAjData','fAjStatus'].forEach(id=>{
+  ['fIniData','fIniStatus','fAjSaida','fAjData','fAjStatus','filtroMesIni','filtroMesAj'].forEach(id=>{
     $(id).addEventListener('change',renderizar);
     $(id).addEventListener('input',renderizar);
   });
