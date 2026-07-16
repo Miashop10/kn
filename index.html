@@ -248,7 +248,7 @@ td.acao{white-space:nowrap}
     </div>
     <span class="periodo-box">
       <label for="filtroMesAp">Período:</label>
-      <input type="month" id="filtroMesAp" title="Em aberto: filtra pelo mês do fechamento · Pastas abertas: pelo mês da abertura">
+      <input type="month" id="filtroMesAp" title="Em aberto: filtra pelo mês do recebimento · Pastas abertas: pelo mês da abertura">
       <button class="btn btn-mini btn-borda" onclick="$('filtroMesAp').value='';renderizar()" title="Ver todos os meses">Todos</button>
     </span>
     <div class="direita">
@@ -262,8 +262,8 @@ td.acao{white-space:nowrap}
     <table>
       <thead>
         <tr>
-          <th>Nome</th><th>Telefone</th><th>Empresa</th><th>Data fechamento</th><th>Documentação</th>
-          <th>Data abertura</th><th>Nº Pasta CPJ</th><th>Ações</th>
+          <th>Nome</th><th>Telefone</th><th>Empresa</th><th>Data recebido</th><th>Documentação</th>
+          <th>Nº Pasta CPJ</th><th>Ações</th>
         </tr>
         <tr class="filtros">
           <th><input data-fa="NOME" placeholder="Filtrar"></th>
@@ -275,7 +275,7 @@ td.acao{white-space:nowrap}
             <option value="DOCUMENTAÇÃO OK">DOCUMENTAÇÃO OK</option>
             <option value="FALTANDO DOCUMENTAÇÃO">FALTANDO DOCUMENTAÇÃO</option>
           </select></th>
-          <th></th><th></th>
+          <th></th>
           <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosAp()" title="Limpar filtros">&#10005;</button></th>
         </tr>
       </thead>
@@ -328,6 +328,24 @@ td.acao{white-space:nowrap}
           <th style="min-width:180px">Responsável pela inicial</th>
           <th style="min-width:240px">Observação</th><th>Status</th><th>Ações</th>
         </tr>
+        <tr class="filtros">
+          <th><input data-fi="NOME" placeholder="Filtrar"></th>
+          <th><input data-fi="EMPRESA" placeholder="Filtrar"></th>
+          <th><input data-fi="PASTA_CPJ" placeholder="Filtrar"></th>
+          <th class="th-de-ate">
+            <input type="date" id="fIniDe" title="De (data inicial)">
+            <input type="date" id="fIniAte" title="Até (data final)">
+          </th>
+          <th><input data-fi="INICIAL_RESP" placeholder="Filtrar"></th>
+          <th><input data-fi="INICIAL_OBS" placeholder="Filtrar"></th>
+          <th><select id="fIniStatus">
+            <option value="">Todos</option>
+            <option value="PENDENTE">PENDENTE</option>
+            <option value="AJUSTES">AJUSTES</option>
+            <option value="FEITO">FEITO</option>
+          </select></th>
+          <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosIni()" title="Limpar filtros">&#10005;</button></th>
+        </tr>
       </thead>
       <tbody id="corpoIniciais"></tbody>
     </table>
@@ -351,6 +369,25 @@ td.acao{white-space:nowrap}
         <tr>
           <th>Reclamante</th><th>Reclamado</th><th>Nº Pasta</th><th>Data saída</th>
           <th>Data do ajuizamento</th><th>Status</th><th>Ações</th>
+        </tr>
+        <tr class="filtros">
+          <th><input data-fj="NOME" placeholder="Filtrar"></th>
+          <th><input data-fj="EMPRESA" placeholder="Filtrar"></th>
+          <th><input data-fj="PASTA_CPJ" placeholder="Filtrar"></th>
+          <th class="th-de-ate">
+            <input type="date" id="fAjSaidaDe" title="De (data inicial)">
+            <input type="date" id="fAjSaidaAte" title="Até (data final)">
+          </th>
+          <th class="th-de-ate">
+            <input type="date" id="fAjDe" title="De (data inicial)">
+            <input type="date" id="fAjAte" title="Até (data final)">
+          </th>
+          <th><select id="fAjStatus">
+            <option value="">Todos</option>
+            <option value="NAO AJUIZADO">NÃO AJUIZADO</option>
+            <option value="AJUIZADO">AJUIZADO</option>
+          </select></th>
+          <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosAj()" title="Limpar filtros">&#10005;</button></th>
         </tr>
       </thead>
       <tbody id="corpoAjuiz"></tbody>
@@ -617,7 +654,8 @@ function renderizar(){
   const pendentes = fechados.filter(r=>!noHistorico(r) &&
     (!mesAp || dataISO(r.DATA_FECHAMENTO).slice(0,7)===mesAp) &&
     Object.entries(fa).every(([c,v])=>normaliza(r[c]).includes(v)));
-  const historico = fechados.filter(r=>noHistorico(r) &&
+  const pastasAbertas = fechados.filter(noHistorico); // base das abas 3 e 4 (sem os filtros da aba 2)
+  const historico = pastasAbertas.filter(r=>
     (!mesAp || dataISO(r.DATA_ABERTURA).slice(0,7)===mesAp));
 
   $('badgeAbertas').textContent = 'PASTAS ABERTAS: '+historico.length;
@@ -638,7 +676,6 @@ function renderizar(){
         </select>
         <input class="ap-falta ${faltando?'visivel':''}" id="apFalta_${r.ID}" placeholder="Qual documentação está faltando?" value="${esc(r.DOC_FALTANDO)}">
       </td>
-      <td><input type="date" class="ap-input" id="apData_${r.ID}" value="${esc(dataISO(r.DATA_ABERTURA)||r.DATA_ABERTURA)}"></td>
       <td><input class="ap-input" id="apCpj_${r.ID}" placeholder="Nº pasta" value="${esc(r.PASTA_CPJ)}"></td>
       <td class="acao">
         <button class="btn btn-mini btn-principal" onclick="apSalvar('${r.ID}')">Salvar</button>
@@ -675,7 +712,17 @@ function renderizar(){
   /* --- aba 3: iniciais para elaborar --- */
   const INI_CORES = {'FEITO':'verde','AJUSTES':'amarelo','PENDENTE':'vermelho'};
   const statusIni = r => normaliza(r.INICIAL_STATUS)||'PENDENTE'; // padrão: PENDENTE (vermelho)
-  $('corpoIniciais').innerHTML = historico.map(r=>{
+  const fi = {};
+  document.querySelectorAll('[data-fi]').forEach(el=>{if(el.value)fi[el.dataset.fi]=normaliza(el.value)});
+  const iniDe=$('fIniDe').value, iniAte=$('fIniAte').value, iniSt=$('fIniStatus').value;
+  const iniVisiveis = pastasAbertas.filter(r=>{
+    const dISO = dataISO(r.DATA_SAIDA);
+    return (!iniDe || (dISO && dISO>=iniDe)) &&
+      (!iniAte || (dISO && dISO<=iniAte)) &&
+      (!iniSt || statusIni(r)===iniSt) &&
+      Object.entries(fi).every(([c,v])=>normaliza(r[c]).includes(v));
+  });
+  $('corpoIniciais').innerHTML = iniVisiveis.map(r=>{
     const st = statusIni(r);
     const cor = INI_CORES[st]||'vermelho';
     return `<tr class="st-${cor}">
@@ -694,23 +741,35 @@ function renderizar(){
       </td>
       <td class="acao">
         <button class="btn btn-mini btn-principal" onclick="salvarInicialObs('${r.ID}')">Salvar</button>
-        <button class="btn btn-mini btn-borda" onclick="exportarPdfUnificado('${r.ID}')" title="Exportar todos os documentos anexados em um único PDF">&#128196; PDF unificado</button>
         <button class="btn btn-mini btn-borda" onclick="abrirFicha('${r.ID}')">Ficha</button>
       </td>
     </tr>`}).join('');
-  const iniPend = historico.filter(r=>statusIni(r)==='PENDENTE').length;
-  const iniAjus = historico.filter(r=>statusIni(r)==='AJUSTES').length;
+  const iniPend = iniVisiveis.filter(r=>statusIni(r)==='PENDENTE').length;
+  const iniAjus = iniVisiveis.filter(r=>statusIni(r)==='AJUSTES').length;
   $('badgeIniFazer').textContent = 'INICIAIS PARA FAZER: '+(iniPend+iniAjus);
   $('badgeIniPend').textContent = 'PENDENTES: '+iniPend;
   $('badgeIniAjustes').textContent = 'AJUSTES: '+iniAjus;
-  $('badgeIniFeitos').textContent = 'FEITOS: '+historico.filter(r=>statusIni(r)==='FEITO').length;
-  $('vazioIniciais').style.display = historico.length?'none':'block';
-  $('contIniciais').textContent = historico.length;
+  $('badgeIniFeitos').textContent = 'FEITOS: '+iniVisiveis.filter(r=>statusIni(r)==='FEITO').length;
+  $('vazioIniciais').style.display = iniVisiveis.length?'none':'block';
+  $('contIniciais').textContent = pastasAbertas.length;
 
   /* --- aba 4: ajuizamento --- */
-  const feitas = historico.filter(r=>statusIni(r)==='FEITO');
+  const feitas = pastasAbertas.filter(r=>statusIni(r)==='FEITO');
   const statusAj = r => normaliza(r.AJUIZ_STATUS)||'NAO AJUIZADO'; // padrão: NÃO AJUIZADO (vermelho)
-  $('corpoAjuiz').innerHTML = feitas.map(r=>{
+  const fj = {};
+  document.querySelectorAll('[data-fj]').forEach(el=>{if(el.value)fj[el.dataset.fj]=normaliza(el.value)});
+  const ajSaidaDe=$('fAjSaidaDe').value, ajSaidaAte=$('fAjSaidaAte').value;
+  const ajDe=$('fAjDe').value, ajAte=$('fAjAte').value, ajSt=$('fAjStatus').value;
+  const ajVisiveis = feitas.filter(r=>{
+    const dSaida = dataISO(r.DATA_SAIDA), dAj = dataISO(r.AJUIZ_DATA);
+    return (!ajSaidaDe || (dSaida && dSaida>=ajSaidaDe)) &&
+      (!ajSaidaAte || (dSaida && dSaida<=ajSaidaAte)) &&
+      (!ajDe || (dAj && dAj>=ajDe)) &&
+      (!ajAte || (dAj && dAj<=ajAte)) &&
+      (!ajSt || statusAj(r)===ajSt) &&
+      Object.entries(fj).every(([c,v])=>normaliza(r[c]).includes(v));
+  });
+  $('corpoAjuiz').innerHTML = ajVisiveis.map(r=>{
     const aj = statusAj(r)==='AJUIZADO';
     return `<tr class="${aj?'st-verde':'st-vermelho'}">
       <td><b>${esc(r.NOME)}</b></td>
@@ -726,14 +785,13 @@ function renderizar(){
       </td>
       <td class="acao">
         <button class="btn btn-mini btn-principal" onclick="salvarAjuizData('${r.ID}')">Salvar</button>
-        <button class="btn btn-mini btn-borda" onclick="exportarPdfUnificado('${r.ID}')" title="Exportar todos os documentos anexados em um único PDF">&#128196; PDF unificado</button>
         <button class="btn btn-mini btn-borda" onclick="abrirFicha('${r.ID}')">Ficha</button>
       </td>
     </tr>`}).join('');
-  const nAjuizados = feitas.filter(r=>statusAj(r)==='AJUIZADO').length;
+  const nAjuizados = ajVisiveis.filter(r=>statusAj(r)==='AJUIZADO').length;
   $('badgeAjuizados').textContent = 'AJUIZADOS: '+nAjuizados;
-  $('badgeNaoAjuizados').textContent = 'NÃO AJUIZADOS: '+(feitas.length-nAjuizados);
-  $('vazioAjuiz').style.display = feitas.length?'none':'block';
+  $('badgeNaoAjuizados').textContent = 'NÃO AJUIZADOS: '+(ajVisiveis.length-nAjuizados);
+  $('vazioAjuiz').style.display = ajVisiveis.length?'none':'block';
   $('contAjuiz').textContent = feitas.length;
 }
 
@@ -901,6 +959,16 @@ function limparFiltrosAp(){
   document.querySelectorAll('[data-fa]').forEach(el=>el.value='');
   renderizar();
 }
+function limparFiltrosIni(){
+  document.querySelectorAll('[data-fi]').forEach(el=>el.value='');
+  $('fIniDe').value='';$('fIniAte').value='';$('fIniStatus').value='';
+  renderizar();
+}
+function limparFiltrosAj(){
+  document.querySelectorAll('[data-fj]').forEach(el=>el.value='');
+  $('fAjSaidaDe').value='';$('fAjSaidaAte').value='';$('fAjDe').value='';$('fAjAte').value='';$('fAjStatus').value='';
+  renderizar();
+}
 function limparFiltrosHist(){
   document.querySelectorAll('[data-fh]').forEach(el=>el.value='');
   $('fHistDe').value='';$('fHistAte').value='';
@@ -967,9 +1035,8 @@ async function apSalvar(id){
     ID:id,
     DOC_SITUACAO: situacao,
     DOC_FALTANDO: normaliza(situacao)==='FALTANDO DOCUMENTACAO'?$('apFalta_'+id).value.trim():'',
-    DATA_ABERTURA: dataBR($('apData_'+id).value),
     PASTA_CPJ: numeroCpj
-  };
+  }; // a data de abertura é registrada automaticamente pelo servidor
   // o nº da pasta no CPJ vai automaticamente para o campo PASTA da ficha
   if(numeroCpj) reg.PASTA = numeroCpj;
   loading(true,'Salvando…');
@@ -1283,6 +1350,14 @@ async function excluirUsuario(i){
   document.querySelectorAll('[data-fa]').forEach(el=>{
     el.addEventListener('input',renderizar);
     el.addEventListener('change',renderizar);
+  });
+  document.querySelectorAll('[data-fi],[data-fj]').forEach(el=>{
+    el.addEventListener('input',renderizar);
+    el.addEventListener('change',renderizar);
+  });
+  ['fIniDe','fIniAte','fIniStatus','fAjSaidaDe','fAjSaidaAte','fAjDe','fAjAte','fAjStatus'].forEach(id=>{
+    $(id).addEventListener('change',renderizar);
+    $(id).addEventListener('input',renderizar);
   });
   document.querySelectorAll('.modal-fundo').forEach(m=>{
     m.addEventListener('mousedown',e=>{if(e.target===m)m.classList.remove('aberto')});
