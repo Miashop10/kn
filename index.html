@@ -30,7 +30,7 @@ input,select,textarea{font-family:inherit;font-size:13px;border:1px solid var(--
 input:focus,select:focus,textarea:focus{outline:2px solid var(--oxblood-claro);outline-offset:0;border-color:var(--oxblood)}
 
 /* ===== cabeçalho ===== */
-header{background:var(--navy);color:#f2ede4;padding:14px 26px 0;border-bottom:4px solid var(--oxblood)}
+header{background:var(--navy);color:#f2ede4;padding:14px 26px 0;border-bottom:4px solid var(--oxblood);position:sticky;top:0;z-index:40}
 .marca{display:flex;align-items:center;gap:14px}
 .marca img{height:52px;width:auto}
 .marca h1{font-family:'Spectral',serif;font-weight:600;font-size:22px;letter-spacing:4px;color:#d9d9dc}
@@ -55,14 +55,25 @@ main{padding:18px 26px;max-width:1600px;margin:0 auto}
 .btn-perigo{background:var(--branco);border:1px solid var(--vermelho-bd);color:var(--vermelho-tx)}
 .barra .direita{margin-left:auto;display:flex;gap:8px;align-items:center;color:var(--cinza);font-size:12.5px}
 .fechados-badge{background:var(--verde-bg);color:var(--verde-tx);border:1px solid var(--verde-bd);border-radius:99px;padding:7px 14px;font-size:12px;font-weight:700;letter-spacing:.4px}
+.badge-amarelo{background:var(--amarelo-bg);color:var(--amarelo-tx);border-color:var(--amarelo-bd)}
+.badge-vermelho{background:var(--vermelho-bg);color:var(--vermelho-tx);border-color:var(--vermelho-bd)}
+.badge-neutro{background:var(--navy);color:#e8e4da;border-color:var(--navy)}
+.periodo-box{display:inline-flex;align-items:center;gap:6px;background:var(--branco);border:1px solid var(--linha);border-radius:7px;padding:4px 8px}
+.periodo-box label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cinza)}
+.periodo-box input{border:none;padding:4px 2px;font-size:13px}
+.sub-abas{display:flex;gap:0;border:1px solid var(--linha);border-radius:7px;overflow:hidden;margin-left:6px}
+.sub-aba{background:var(--branco);border:none;padding:8px 16px;font-size:12.5px;font-weight:600;color:var(--cinza)}
+.sub-aba.ativa{background:var(--navy);color:#fff}
 
 
 /* ===== tabela ===== */
-.tabela-wrap{background:var(--branco);border:1px solid var(--linha);border-radius:10px;overflow:auto;max-height:calc(100vh - 220px)}
+.tabela-wrap{background:var(--branco);border:1px solid var(--linha);border-radius:10px;overflow:auto;max-height:calc(100vh - 245px)}
 table{border-collapse:collapse;width:100%;min-width:1250px}
 thead th{position:sticky;top:0;background:var(--navy);color:#e8e4da;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;padding:9px 10px;text-align:left;white-space:nowrap;z-index:2}
 thead tr.filtros th{top:34px;background:#2a3b55;padding:5px 6px}
 thead tr.filtros input,thead tr.filtros select{width:100%;min-width:70px;font-size:12px;padding:5px 7px;border-radius:5px;border:none}
+.th-de-ate input{display:block;min-width:118px;margin:0 0 3px}
+.th-de-ate input:last-child{margin-bottom:0}
 tbody td{padding:8px 10px;border-top:1px solid var(--linha);font-size:13px;vertical-align:middle}
 tbody tr{cursor:pointer}
 tbody tr:hover td{filter:brightness(.96)}
@@ -149,7 +160,7 @@ td.acao{white-space:nowrap}
 </head>
 <body>
 
-<header style="position:relative">
+<header>
   <div class="topo-dir">
     <span id="usuLogado"></span>
     <button class="btn-topo" id="btnUsuarios" style="display:none" onclick="abrirUsuarios()" title="Adicionar usuários e senhas">&#128101; Usuários</button>
@@ -165,6 +176,7 @@ td.acao{white-space:nowrap}
   <div class="abas">
     <button class="aba ativa" data-aba="atendimentos" onclick="trocarAba('atendimentos')">Atendimentos <span class="cont" id="contAtend">0</span></button>
     <button class="aba" data-aba="abertura" onclick="trocarAba('abertura')">Abertura de Pasta <span class="cont" id="contAbertura">0</span></button>
+    <button class="aba" data-aba="iniciais" onclick="trocarAba('iniciais')">Iniciais para elaborar <span class="cont" id="contIniciais">0</span></button>
   </div>
 </header>
 
@@ -174,6 +186,11 @@ td.acao{white-space:nowrap}
   <div class="barra">
     <button class="btn btn-principal" onclick="abrirFicha()">+ Novo atendimento</button>
     <span class="fechados-badge" id="badgeFechados" title="Atualiza conforme os filtros aplicados">CLIENTES FECHADOS: 0</span>
+    <span class="periodo-box">
+      <label for="filtroMes">Período:</label>
+      <input type="month" id="filtroMes" title="Filtra os atendimentos pelo mês da data">
+      <button class="btn btn-mini btn-borda" onclick="$('filtroMes').value='';renderizar()" title="Ver todos os meses">Todos</button>
+    </span>
     <div class="direita">
       <span id="resumoFiltro"></span>
       <button class="btn btn-mini btn-borda doc-add" style="position:relative">
@@ -195,7 +212,10 @@ td.acao{white-space:nowrap}
           <th>Docs</th><th>Observações</th><th></th>
         </tr>
         <tr class="filtros">
-          <th><input data-f="DATA" placeholder="Filtrar"></th>
+          <th class="th-de-ate">
+            <input type="date" id="fDataDe" title="De (data inicial)">
+            <input type="date" id="fDataAte" title="Até (data final)">
+          </th>
           <th><input data-f="HORARIO" placeholder="Filtrar"></th>
           <th><input data-f="NOME" placeholder="Filtrar"></th>
           <th><input data-f="TELEFONE" placeholder="Filtrar"></th>
@@ -219,10 +239,20 @@ td.acao{white-space:nowrap}
 <!-- ================= ABA 2: ABERTURA DE PASTA ================= -->
 <section class="painel" id="painel-abertura">
   <div class="barra">
-    <span style="color:var(--cinza);font-size:13px">Clientes com status <b style="color:var(--verde-tx)">FECHOU</b> entram aqui automaticamente.</span>
-    <div class="direita"><button class="btn btn-borda" onclick="carregar()">&#8635; Atualizar</button></div>
+    <span class="fechados-badge" id="badgeAbertas">PASTAS ABERTAS: 0</span>
+    <span class="fechados-badge badge-amarelo" id="badgeNaoAbertas">PASTAS NÃO ABERTAS: 0</span>
+    <div class="sub-abas">
+      <button class="sub-aba ativa" id="subPendentes" onclick="trocarSubAba('pendentes')">Em aberto</button>
+      <button class="sub-aba" id="subHistorico" onclick="trocarSubAba('historico')">Pastas abertas</button>
+    </div>
+    <div class="direita">
+      <span style="font-size:12px">FECHOU entra aqui automaticamente · nº da pasta + documentação OK vai para Pastas abertas</span>
+      <button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button>
+    </div>
   </div>
-  <div class="tabela-wrap">
+
+  <!-- pendentes de abertura -->
+  <div class="tabela-wrap" id="wrapPendentes">
     <table>
       <thead>
         <tr>
@@ -232,7 +262,56 @@ td.acao{white-space:nowrap}
       </thead>
       <tbody id="corpoAbertura"></tbody>
     </table>
-    <div class="vazio" id="vazioAbertura" style="display:none">Nenhum cliente com status FECHOU ainda.</div>
+    <div class="vazio" id="vazioAbertura" style="display:none">Nenhuma pasta pendente de abertura.</div>
+  </div>
+
+  <!-- pastas abertas -->
+  <div class="tabela-wrap" id="wrapHistorico" style="display:none">
+    <table>
+      <thead>
+        <tr>
+          <th>Data abertura</th><th>Nº Pasta CPJ</th><th>Nome</th><th>Telefone</th><th>Empresa</th><th>Ações</th>
+        </tr>
+        <tr class="filtros">
+          <th class="th-de-ate">
+            <input type="date" id="fHistDe" title="De (data inicial)">
+            <input type="date" id="fHistAte" title="Até (data final)">
+          </th>
+          <th><input data-fh="PASTA_CPJ" placeholder="Filtrar nº pasta"></th>
+          <th><input data-fh="NOME" placeholder="Filtrar"></th>
+          <th></th><th></th>
+          <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosHist()" title="Limpar filtros">&#10005;</button></th>
+        </tr>
+      </thead>
+      <tbody id="corpoHistorico"></tbody>
+    </table>
+    <div class="vazio" id="vazioHistorico" style="display:none">Nenhuma pasta aberta ainda.</div>
+  </div>
+</section>
+
+<!-- ================= ABA 3: INICIAIS PARA ELABORAR ================= -->
+<section class="painel" id="painel-iniciais">
+  <div class="barra">
+    <span class="fechados-badge badge-neutro" id="badgeIniFazer">INICIAIS PARA FAZER: 0</span>
+    <span class="fechados-badge badge-vermelho" id="badgeIniPend">PENDENTES: 0</span>
+    <span class="fechados-badge badge-amarelo" id="badgeIniAjustes">AJUSTES: 0</span>
+    <span class="fechados-badge" id="badgeIniFeitos">FEITOS: 0</span>
+    <div class="direita">
+      <span style="font-size:12px">Pastas abertas entram aqui automaticamente como PENDENTE</span>
+      <button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button>
+    </div>
+  </div>
+  <div class="tabela-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Reclamante</th><th>Reclamado</th><th>Nº Pasta</th><th>Data saída</th>
+          <th style="min-width:280px">Observação</th><th>Status</th><th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="corpoIniciais"></tbody>
+    </table>
+    <div class="vazio" id="vazioIniciais" style="display:none">Nenhuma inicial para elaborar ainda.</div>
   </div>
 </section>
 </main>
@@ -341,6 +420,7 @@ td.acao{white-space:nowrap}
         <span class="abas-check">
           <label><input type="checkbox" id="novoAtend" checked> Atendimentos</label>
           <label><input type="checkbox" id="novoAbert"> Abertura de Pasta</label>
+          <label><input type="checkbox" id="novoInic"> Iniciais</label>
         </span>
         <button class="btn btn-mini btn-principal" onclick="adicionarUsuario()">+ Adicionar</button>
       </div>
@@ -442,25 +522,37 @@ function filtrosAtivos(){
   document.querySelectorAll('[data-f]').forEach(el=>{if(el.value)f[el.dataset.f]=normaliza(el.value)});
   return f;
 }
-function limparFiltros(){document.querySelectorAll('[data-f]').forEach(el=>el.value='');renderizar()}
+function limparFiltros(){
+  document.querySelectorAll('[data-f]').forEach(el=>el.value='');
+  $('fDataDe').value='';$('fDataAte').value='';
+  renderizar();
+}
 
 function renderizar(){
   /* --- aba 1 --- */
   const f = filtrosAtivos();
-  const visiveis = registros.filter(r=>Object.entries(f).every(([c,v])=>normaliza(r[c]).includes(v)));
+  const mes = $('filtroMes').value; // formato yyyy-mm
+  const dDe = $('fDataDe').value, dAte = $('fDataAte').value;
+  const visiveis = registros.filter(r=>{
+    const dISO = dataISO(r.DATA);
+    return (!mes || dISO.slice(0,7)===mes) &&
+      (!dDe || (dISO && dISO>=dDe)) &&
+      (!dAte || (dISO && dISO<=dAte)) &&
+      Object.entries(f).every(([c,v])=>normaliza(r[c]).includes(v));
+  });
   const corpo = $('corpoAtend');
   corpo.innerHTML = visiveis.map(r=>{
     const cor = STATUS_CORES[normaliza(r.STATUS)]||'';
     const extra = [];
-    if(normaliza(r.STATUS)==='FECHOU' && r.INDICACAO) extra.push('Indicação: '+esc(r.INDICACAO));
     if(normaliza(r.STATUS)==='MARCADO OUTRO DIA' && r.RETORNO_DIA_HORARIO) extra.push('Remarcado: '+esc(r.RETORNO_DIA_HORARIO));
+    const obs = [r.OBSERVACOES, r.INDICACAO?('Indicação: '+r.INDICACAO):''].filter(Boolean).join(' · ');
     return `<tr class="st-${cor}" onclick="abrirFicha('${r.ID}')">
       <td>${esc(dataBR(r.DATA))}</td><td>${esc(r.HORARIO||'')}</td><td><b>${esc(r.NOME)}</b></td><td>${esc(r.TELEFONE)}</td>
       <td>${esc(r.EMPRESA)}</td><td>${esc(r.RESPONSAVEL)}</td><td>${esc(r.PASTA)}</td>
       <td>${esc(r.ADV_ATENDIMENTO)}</td><td>${esc(dataBR(r.DATA_SAIDA))}</td>
       <td><span class="pill ${cor}">${esc(r.STATUS)||'—'}</span>${extra.length?'<div style="font-size:11px;margin-top:3px">'+extra.join(' · ')+'</div>':''}</td>
       <td><span class="docs-chip">${totalDocs(r)} arq.</span></td>
-      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.OBSERVACOES)}">${esc(r.OBSERVACOES)}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(obs)}">${esc(obs)}</td>
       <td class="acao">
         <button class="btn btn-mini btn-borda" onclick="event.stopPropagation();abrirFicha('${r.ID}')">Editar</button>
         <button class="btn btn-mini btn-perigo" onclick="event.stopPropagation();excluirLinha('${r.ID}')">Excluir</button>
@@ -468,12 +560,19 @@ function renderizar(){
     </tr>`}).join('');
   $('vazioAtend').style.display = visiveis.length?'none':'block';
   $('contAtend').textContent = registros.length;
-  $('resumoFiltro').textContent = Object.keys(f).length?`${visiveis.length} de ${registros.length} registros`:'';
+  $('resumoFiltro').textContent = (Object.keys(f).length||mes||dDe||dAte)?`${visiveis.length} de ${registros.length} registros`:'';
   $('badgeFechados').textContent = 'CLIENTES FECHADOS: '+visiveis.filter(r=>normaliza(r.STATUS)==='FECHOU').length;
 
   /* --- aba 2 --- */
   const fechados = registros.filter(r=>normaliza(r.STATUS)==='FECHOU');
-  $('corpoAbertura').innerHTML = fechados.map(r=>{
+  const noHistorico = r => normaliza(r.DOC_SITUACAO)==='DOCUMENTACAO OK' && String(r.PASTA_CPJ||'').trim()!=='';
+  const pendentes = fechados.filter(r=>!noHistorico(r));
+  const historico = fechados.filter(noHistorico);
+
+  $('badgeAbertas').textContent = 'PASTAS ABERTAS: '+historico.length;
+  $('badgeNaoAbertas').textContent = 'PASTAS NÃO ABERTAS: '+pendentes.length;
+
+  $('corpoAbertura').innerHTML = pendentes.map(r=>{
     const ok = normaliza(r.DOC_SITUACAO)==='DOCUMENTACAO OK';
     const faltando = normaliza(r.DOC_SITUACAO)==='FALTANDO DOCUMENTACAO';
     const cor = ok?'st-verde':(faltando?'st-amarelo':'');
@@ -495,8 +594,65 @@ function renderizar(){
         <button class="btn btn-mini btn-borda" onclick="abrirFicha('${r.ID}')">Ficha</button>
       </td>
     </tr>`}).join('');
-  $('vazioAbertura').style.display = fechados.length?'none':'block';
+  $('vazioAbertura').style.display = pendentes.length?'none':'block';
+
+  /* --- histórico --- */
+  const fh = {};
+  document.querySelectorAll('[data-fh]').forEach(el=>{if(el.value)fh[el.dataset.fh]=normaliza(el.value)});
+  const hDe = $('fHistDe').value, hAte = $('fHistAte').value;
+  const histVisiveis = historico.filter(r=>{
+    const dISO = dataISO(r.DATA_ABERTURA);
+    return (!hDe || (dISO && dISO>=hDe)) &&
+      (!hAte || (dISO && dISO<=hAte)) &&
+      Object.entries(fh).every(([c,v])=>normaliza(r[c]).includes(v));
+  });
+  $('corpoHistorico').innerHTML = histVisiveis.map(r=>`<tr class="st-verde">
+      <td>${esc(dataBR(r.DATA_ABERTURA))}</td><td><b>${esc(r.PASTA_CPJ)}</b></td>
+      <td>${esc(r.NOME)}</td><td>${esc(r.TELEFONE)}</td><td>${esc(r.EMPRESA)}</td>
+      <td class="acao">
+        <button class="btn btn-mini btn-borda" onclick="exportarPdfUnificado('${r.ID}')" title="Exportar todos os documentos anexados em um único PDF">&#128196; PDF unificado</button>
+        <button class="btn btn-mini btn-borda" onclick="abrirFicha('${r.ID}')">Ficha</button>
+        <button class="btn btn-mini btn-borda" onclick="voltarParaAbertura('${r.ID}')" title="Devolver para Em aberto para corrigir dados">Reabrir</button>
+      </td>
+    </tr>`).join('');
+  $('vazioHistorico').style.display = histVisiveis.length?'none':'block';
+  $('subPendentes').textContent = 'Em aberto ('+pendentes.length+')';
+  $('subHistorico').textContent = 'Pastas abertas ('+historico.length+')';
   $('contAbertura').textContent = fechados.length;
+
+  /* --- aba 3: iniciais para elaborar --- */
+  const INI_CORES = {'FEITO':'verde','AJUSTES':'amarelo','PENDENTE':'vermelho'};
+  const statusIni = r => normaliza(r.INICIAL_STATUS)||'PENDENTE'; // padrão: PENDENTE (vermelho)
+  $('corpoIniciais').innerHTML = historico.map(r=>{
+    const st = statusIni(r);
+    const cor = INI_CORES[st]||'vermelho';
+    return `<tr class="st-${cor}">
+      <td><b>${esc(r.NOME)}</b></td>
+      <td><b>${esc(r.EMPRESA)}</b></td>
+      <td>${esc(r.PASTA_CPJ)}</td>
+      <td>${esc(dataBR(r.DATA_SAIDA))}</td>
+      <td><input style="width:100%" id="iniObs_${r.ID}" placeholder="Observação" value="${esc(r.INICIAL_OBS||'')}"></td>
+      <td>
+        <select onchange="salvarInicialStatus('${r.ID}',this.value)">
+          <option value="PENDENTE" ${st==='PENDENTE'?'selected':''}>PENDENTE</option>
+          <option value="AJUSTES" ${st==='AJUSTES'?'selected':''}>AJUSTES</option>
+          <option value="FEITO" ${st==='FEITO'?'selected':''}>FEITO</option>
+        </select>
+      </td>
+      <td class="acao">
+        <button class="btn btn-mini btn-principal" onclick="salvarInicialObs('${r.ID}')">Salvar</button>
+        <button class="btn btn-mini btn-borda" onclick="exportarPdfUnificado('${r.ID}')" title="Exportar todos os documentos anexados em um único PDF">&#128196; PDF unificado</button>
+        <button class="btn btn-mini btn-borda" onclick="abrirFicha('${r.ID}')">Ficha</button>
+      </td>
+    </tr>`}).join('');
+  const iniPend = historico.filter(r=>statusIni(r)==='PENDENTE').length;
+  const iniAjus = historico.filter(r=>statusIni(r)==='AJUSTES').length;
+  $('badgeIniFazer').textContent = 'INICIAIS PARA FAZER: '+(iniPend+iniAjus);
+  $('badgeIniPend').textContent = 'PENDENTES: '+iniPend;
+  $('badgeIniAjustes').textContent = 'AJUSTES: '+iniAjus;
+  $('badgeIniFeitos').textContent = 'FEITOS: '+historico.filter(r=>statusIni(r)==='FEITO').length;
+  $('vazioIniciais').style.display = historico.length?'none':'block';
+  $('contIniciais').textContent = historico.length;
 }
 
 /* ===================== ficha (modal) ===================== */
@@ -653,6 +809,46 @@ async function removerDoc(coluna,arquivoId){
 }
 
 /* ===================== abertura de pasta ===================== */
+function trocarSubAba(qual){
+  $('subPendentes').classList.toggle('ativa',qual==='pendentes');
+  $('subHistorico').classList.toggle('ativa',qual==='historico');
+  $('wrapPendentes').style.display = qual==='pendentes'?'block':'none';
+  $('wrapHistorico').style.display = qual==='historico'?'block':'none';
+}
+function limparFiltrosHist(){
+  document.querySelectorAll('[data-fh]').forEach(el=>el.value='');
+  $('fHistDe').value='';$('fHistAte').value='';
+  renderizar();
+}
+
+async function voltarParaAbertura(id){
+  if(!confirm('Devolver esta pasta para "Em aberto"? A documentação voltará a ficar pendente de confirmação.'))return;
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvar',registro:{ID:id,DOC_SITUACAO:''}});
+  loading(false);
+  if(resp.ok){const r=registros.find(x=>x.ID===id);if(r)r.DOC_SITUACAO='';renderizar();trocarSubAba('pendentes');toast('Pasta devolvida para Em aberto')}
+  else toast('Erro: '+resp.erro);
+}
+
+async function salvarInicialStatus(id,valor){
+  const r = registros.find(x=>x.ID===id);
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvar',registro:{ID:id,INICIAL_STATUS:valor}});
+  loading(false);
+  if(resp.ok){if(r)r.INICIAL_STATUS=valor;renderizar();toast('Status: '+valor)}
+  else toast('Erro: '+resp.erro);
+}
+
+async function salvarInicialObs(id){
+  const r = registros.find(x=>x.ID===id);
+  const obs = $('iniObs_'+id).value.trim();
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvar',registro:{ID:id,INICIAL_OBS:obs}});
+  loading(false);
+  if(resp.ok){if(r)r.INICIAL_OBS=obs;toast('Observação salva')}
+  else toast('Erro: '+resp.erro);
+}
+
 function apMudaSituacao(id,sel){
   const campo=$('apFalta_'+id);
   campo.classList.toggle('visivel', normaliza(sel.value)==='FALTANDO DOCUMENTACAO');
@@ -673,7 +869,14 @@ async function apSalvar(id){
   loading(true,'Salvando…');
   const resp = await apiPost({action:'salvar',registro:reg});
   loading(false);
-  if(resp.ok){Object.assign(r,reg);renderizar();toast('Abertura de pasta salva')}
+  if(resp.ok){
+    Object.assign(r,reg);renderizar();
+    if(normaliza(reg.DOC_SITUACAO)==='DOCUMENTACAO OK' && reg.PASTA_CPJ){
+      toast('Pasta '+reg.PASTA_CPJ+' aberta e movida para Pastas abertas');
+    }else{
+      toast('Abertura de pasta salva');
+    }
+  }
   else toast('Erro: '+resp.erro);
 }
 
@@ -858,7 +1061,7 @@ function aplicarLogin(){
   document.querySelectorAll('.aba').forEach(b=>{
     b.style.display = pode(b.dataset.aba)?'inline-flex':'none';
   });
-  const primeira = ['atendimentos','abertura'].find(pode) || 'atendimentos';
+  const primeira = ['atendimentos','abertura','iniciais'].find(pode) || 'atendimentos';
   trocarAba(primeira);
   carregar();
 }
@@ -898,6 +1101,7 @@ function renderUsuarios(){
       <span class="abas-check">
         <label><input type="checkbox" id="uAtend_${i}" ${abas.includes('atendimentos')?'checked':''}> Atendimentos</label>
         <label><input type="checkbox" id="uAbert_${i}" ${abas.includes('abertura')?'checked':''}> Abertura de Pasta</label>
+        <label><input type="checkbox" id="uInic_${i}" ${abas.includes('iniciais')?'checked':''}> Iniciais</label>
       </span>
       <button class="btn btn-mini btn-borda" onclick="salvarUsuario(${i})">Salvar</button>
       <button class="btn btn-mini btn-perigo" onclick="excluirUsuario(${i})">Excluir</button>
@@ -905,16 +1109,17 @@ function renderUsuarios(){
   }).join('') || '<div style="font-size:12.5px;color:var(--cinza);margin-bottom:8px">Nenhum usuário cadastrado ainda.</div>';
 }
 
-function abasMarcadas(atendId,abertId){
+function abasMarcadas(atendId,abertId,inicId){
   const a=[];
   if($(atendId).checked)a.push('atendimentos');
   if($(abertId).checked)a.push('abertura');
+  if($(inicId).checked)a.push('iniciais');
   return a.join(',');
 }
 
 async function adicionarUsuario(){
   const nome=$('novoNome').value.trim(), senha=$('novaSenha').value.trim();
-  const abas=abasMarcadas('novoAtend','novoAbert');
+  const abas=abasMarcadas('novoAtend','novoAbert','novoInic');
   if(!nome||!senha){toast('Informe nome e senha');return}
   if(!abas){toast('Marque ao menos uma aba');return}
   loading(true,'Salvando…');
@@ -926,7 +1131,7 @@ async function adicionarUsuario(){
 
 async function salvarUsuario(i){
   const nome=$('uNome_'+i).value.trim(), senha=$('uSenha_'+i).value.trim();
-  const abas=abasMarcadas('uAtend_'+i,'uAbert_'+i);
+  const abas=abasMarcadas('uAtend_'+i,'uAbert_'+i,'uInic_'+i);
   if(!nome||!senha){toast('Informe nome e senha');return}
   if(!abas){toast('Marque ao menos uma aba');return}
   loading(true,'Salvando…');
@@ -956,6 +1161,16 @@ async function excluirUsuario(i){
   document.querySelectorAll('[data-f]').forEach(el=>{
     el.addEventListener('input',renderizar);
     el.addEventListener('change',renderizar);
+  });
+  document.querySelectorAll('[data-fh]').forEach(el=>{
+    el.addEventListener('input',renderizar);
+    el.addEventListener('change',renderizar);
+  });
+  $('filtroMes').addEventListener('change',renderizar);
+  $('filtroMes').addEventListener('input',renderizar);
+  ['fDataDe','fDataAte','fHistDe','fHistAte'].forEach(id=>{
+    $(id).addEventListener('change',renderizar);
+    $(id).addEventListener('input',renderizar);
   });
   document.querySelectorAll('.modal-fundo').forEach(m=>{
     m.addEventListener('mousedown',e=>{if(e.target===m)m.classList.remove('aberto')});
