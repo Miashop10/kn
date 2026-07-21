@@ -247,7 +247,10 @@ td.acao{white-space:nowrap}
   <div class="barra">
     <span class="periodo-box" id="agAdvBox" style="display:none">
       <label for="agAdvSel">Agenda de:</label>
-      <select id="agAdvSel" onchange="carregarAgenda()"></select>
+      <select id="agAdvSel" onchange="renderAgenda()"></select>
+      <input type="text" id="novoAdvNome" placeholder="Nome do advogado" style="width:150px">
+      <button class="btn btn-mini btn-principal" onclick="adicionarAdvogadoAg()" title="Criar a agenda deste advogado">+ Adicionar</button>
+      <button class="btn btn-mini btn-perigo" onclick="excluirAdvogadoAg()" title="Excluir o advogado selecionado e sua agenda">Excluir</button>
     </span>
     <div class="sub-abas">
       <button class="sub-aba" onclick="mudarSemana(-1)">&#8249; Semana anterior</button>
@@ -1613,21 +1616,52 @@ function mudarSemana(n){
 async function carregarAgenda(){
   if(!agSemana) agSemana = inicioSemana(new Date());
   if(usuario && usuario.master){
-    // popula o seletor de advogados (usuários com acesso à agenda)
     $('agAdvBox').style.display='inline-flex';
-    if(!$('agAdvSel').options.length){
-      const r = await apiPost({action:'listarUsuarios',senhaMaster:usuario.senha});
-      if(r.ok){
-        const advs = r.usuarios.filter(u=>u.abas.split(',').includes('agenda')).map(u=>u.nome);
-        $('agAdvSel').innerHTML = advs.map(n=>`<option>${esc(n)}</option>`).join('') || '<option value="">(nenhum usuário com acesso à agenda)</option>';
-      }
-    }
+    await atualizarListaAdvogados();
   }
   loading(true,'Carregando agenda…');
   const resp = await apiPost({action:'listarAgenda',advogado: usuario.master ? '' : usuario.nome});
   loading(false);
   if(resp.ok){agendaDados = resp; renderAgenda();}
   else toast('Erro: '+resp.erro);
+}
+
+async function atualizarListaAdvogados(){
+  const r = await apiPost({action:'listarAdvogados'});
+  if(!r.ok) return;
+  const atual = $('agAdvSel').value;
+  $('agAdvSel').innerHTML = r.advogados.map(n=>`<option ${n===atual?'selected':''}>${esc(n)}</option>`).join('')
+    || '<option value="">(nenhum advogado cadastrado)</option>';
+}
+
+async function adicionarAdvogadoAg(){
+  const nome = $('novoAdvNome').value.trim();
+  if(!nome){toast('Digite o nome do advogado');return}
+  loading(true,'Salvando…');
+  const r = await apiPost({action:'salvarAdvogado',senhaMaster:usuario.senha,nome});
+  loading(false);
+  if(r.ok){
+    $('novoAdvNome').value='';
+    const atual = nome;
+    $('agAdvSel').innerHTML = r.advogados.map(n=>`<option ${n===atual?'selected':''}>${esc(n)}</option>`).join('');
+    renderAgenda();
+    toast('Advogado adicionado. Dica: crie em Usuários um login com o MESMO nome para que ele acesse apenas esta agenda.');
+  }else toast(r.erro);
+}
+
+async function excluirAdvogadoAg(){
+  const nome = $('agAdvSel').value;
+  if(!nome){toast('Selecione o advogado');return}
+  if(!confirm('Excluir o advogado '+nome+' e toda a disponibilidade da agenda dele?'))return;
+  loading(true,'Excluindo…');
+  const r = await apiPost({action:'excluirAdvogado',senhaMaster:usuario.senha,nome});
+  loading(false);
+  if(r.ok){
+    $('agAdvSel').innerHTML = r.advogados.map(n=>`<option>${esc(n)}</option>`).join('') || '<option value="">(nenhum advogado cadastrado)</option>';
+    agendaDados.disponibilidade = agendaDados.disponibilidade.filter(d=>d.advogado!==nome);
+    renderAgenda();
+    toast('Advogado excluído');
+  }else toast(r.erro);
 }
 
 function renderAgenda(){
