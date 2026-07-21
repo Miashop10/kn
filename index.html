@@ -215,21 +215,29 @@ td.acao{white-space:nowrap}
 <section class="painel" id="painel-agendamentos">
   <div class="barra">
     <button class="btn btn-principal" onclick="abrirNovoAgendamento()">+ Novo agendamento</button>
-    <button class="btn btn-borda doc-add" style="position:relative">
-      &#128229; IMPORTAR LISTA <input type="file" accept=".xlsx,.xls,.csv,.pdf" onchange="importarAgArquivo(this,'lista')">
-    </button>
-    <button class="btn btn-borda doc-add" style="position:relative">
-      &#128229; IMPORTAR RESULTADOS <input type="file" accept=".xlsx,.xls,.csv,.pdf" onchange="importarAgArquivo(this,'resultados')">
-    </button>
-    <span style="color:var(--cinza);font-size:12px">Lista: NOME/TELEFONE/EMPRESA (cria registros) · Resultados: NOME/TELEFONE/EMPRESA/STATUS (só preenche o status dos nomes já importados)</span>
-    <div class="direita">
-      <button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button>
+    <span class="periodo-box">
+      <label for="filtroMesAg">Período:</label>
+      <input type="month" id="filtroMesAg" title="Filtra pelo mês/ano em que os nomes foram importados ou criados">
+      <button class="btn btn-mini btn-borda" onclick="$('filtroMesAg').value='';renderAgendamentos()" title="Ver todos os meses">Todos</button>
+    </span>
+    <span style="color:var(--cinza);font-size:12px">Lista: cria registros · Resultados: só preenche o status dos nomes já importados</span>
+    <div class="direita" style="align-items:flex-end">
+      <span style="display:flex;flex-direction:column;gap:4px;align-items:stretch">
+        <button class="btn btn-mini btn-borda doc-add" style="position:relative">
+          &#128229; Importar lista <input type="file" accept=".xlsx,.xls,.csv,.pdf" onchange="importarAgArquivo(this,'lista')">
+        </button>
+        <button class="btn btn-mini btn-borda doc-add" style="position:relative">
+          &#128229; Importar resultados <input type="file" accept=".xlsx,.xls,.csv,.pdf" onchange="importarAgArquivo(this,'resultados')">
+        </button>
+        <button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button>
+      </span>
     </div>
   </div>
   <div class="tabela-wrap">
     <table>
       <thead>
         <tr class="filtros">
+          <th><input data-fg="__DATA__" placeholder="mm/aaaa"></th>
           <th><input data-fg="NOME" placeholder="Filtrar"></th>
           <th><input data-fg="TELEFONE" placeholder="Filtrar"></th>
           <th><input data-fg="EMPRESA" placeholder="Filtrar"></th>
@@ -238,7 +246,7 @@ td.acao{white-space:nowrap}
           <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosAg()" title="Limpar filtros">&#10005;</button></th>
         </tr>
         <tr class="nomes">
-          <th>Nome</th><th>Telefone</th><th>Empresa</th><th>Status</th>
+          <th>Data</th><th>Nome</th><th>Telefone</th><th>Empresa</th><th>Status</th>
           <th>Data / horário do agendamento</th><th>Advogado</th><th>Ações</th>
         </tr>
       </thead>
@@ -631,14 +639,15 @@ td.acao{white-space:nowrap}
 <div class="modal-fundo" id="mAgNovo">
   <div class="modal" style="max-width:480px">
     <div class="modal-topo">
-      <h2>Novo agendamento</h2>
+      <h2 id="agNovoTitulo">Novo agendamento</h2>
       <button class="fechar" onclick="fecharModal('mAgNovo')">&times;</button>
     </div>
     <div class="modal-corpo">
-      <div class="grade" style="grid-template-columns:1fr">
-        <div class="campo"><label>Nome</label><input id="agN_NOME"></div>
+      <div class="grade" style="grid-template-columns:1fr 1fr">
+        <div class="campo c2"><label>Nome</label><input id="agN_NOME"></div>
         <div class="campo"><label>Telefone</label><input id="agN_TELEFONE"></div>
-        <div class="campo"><label>Empresa</label><input id="agN_EMPRESA"></div>
+        <div class="campo"><label>Data (mês/ano)</label><input type="month" id="agN_DATA"></div>
+        <div class="campo c2"><label>Empresa</label><input id="agN_EMPRESA"></div>
       </div>
     </div>
     <div class="modal-rodape">
@@ -1428,13 +1437,23 @@ async function confirmarImportacao(){
 /* ===================== agendamentos ===================== */
 let agRegistros = [];
 
+function agDataReg(r){
+  if(r.DATA) return r.DATA; // mm/aaaa
+  const m = String(r.CRIADO_EM||'').match(/\d{2}\/(\d{2})\/(\d{4})/);
+  return m ? m[1]+'/'+m[2] : '';
+}
 function renderAgendamentos(){
   const fg = {};
   document.querySelectorAll('[data-fg]').forEach(el=>{if(el.value)fg[el.dataset.fg]=normaliza(el.value)});
   const stFiltro = $('fAgStatus').value;
-  const visiveis = agRegistros.filter(r=>
-    (!stFiltro || normaliza(r.STATUS)===normaliza(stFiltro)) &&
-    Object.entries(fg).every(([c,v])=>normaliza(r[c]).includes(v)));
+  const mesAg = $('filtroMesAg').value; // aaaa-mm
+  const visiveis = agRegistros.filter(r=>{
+    const dReg = agDataReg(r); // mm/aaaa
+    if(mesAg && dReg !== mesAg.slice(5,7)+'/'+mesAg.slice(0,4)) return false;
+    if(stFiltro && normaliza(r.STATUS)!==normaliza(stFiltro)) return false;
+    return Object.entries(fg).every(([c,v])=>
+      c==='__DATA__' ? normaliza(dReg).includes(v) : normaliza(r[c]).includes(v));
+  });
 
   // opções de status: AGENDADO + os que vieram das importações
   const statusSet = new Set(['AGENDADO']);
@@ -1448,6 +1467,7 @@ function renderAgendamentos(){
     const ag = normaliza(r.STATUS)==='AGENDADO';
     const opcoes = [...statusSet].sort().map(s=>`<option ${normaliza(r.STATUS)===normaliza(s)?'selected':''}>${esc(s)}</option>`).join('');
     return `<tr class="${ag?'st-verde':''}">
+      <td>${esc(agDataReg(r))}</td>
       <td><b>${esc(r.NOME)}</b></td>
       <td>${esc(r.TELEFONE)}</td>
       <td>${esc(r.EMPRESA)}</td>
@@ -1467,6 +1487,7 @@ function renderAgendamentos(){
       </td>
       <td>${esc(r.ADVOGADO||'')}</td>
       <td class="acao">
+        <button class="btn btn-mini btn-borda" onclick="abrirEditarAgendamento('${r.ID}')">Editar</button>
         ${ag && r.AGENDA_DATA ? `<button class="btn btn-mini btn-borda" onclick="agRemarcar('${r.ID}')" title="Escolher outro dia/horário">Remarcar</button>`:''}
         <button class="btn btn-mini btn-perigo" onclick="excluirAgendamento('${r.ID}')">Excluir</button>
       </td>
@@ -1480,29 +1501,57 @@ function limparFiltrosAg(){
   renderAgendamentos();
 }
 
+let agEditId = null;
+
 function abrirNovoAgendamento(){
+  agEditId = null;
+  $('agNovoTitulo').textContent = 'Novo agendamento';
   ['agN_NOME','agN_TELEFONE','agN_EMPRESA'].forEach(id=>$(id).value='');
+  const hoje = new Date();
+  $('agN_DATA').value = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0');
   $('mAgNovo').classList.add('aberto');
   setTimeout(()=>$('agN_NOME').focus(),100);
 }
 
+function abrirEditarAgendamento(id){
+  const r = agRegistros.find(x=>x.ID===id);
+  if(!r)return;
+  agEditId = id;
+  $('agNovoTitulo').textContent = 'Editar — '+(r.NOME||'');
+  $('agN_NOME').value = r.NOME||'';
+  $('agN_TELEFONE').value = r.TELEFONE||'';
+  $('agN_EMPRESA').value = r.EMPRESA||'';
+  const d = agDataReg(r); // mm/aaaa
+  $('agN_DATA').value = d ? d.slice(3,7)+'-'+d.slice(0,2) : '';
+  $('mAgNovo').classList.add('aberto');
+}
+
 async function salvarNovoAgendamento(){
+  const mes = $('agN_DATA').value; // aaaa-mm
   const reg = {
     NOME: $('agN_NOME').value.trim(),
     TELEFONE: $('agN_TELEFONE').value.trim(),
-    EMPRESA: $('agN_EMPRESA').value.trim()
+    EMPRESA: $('agN_EMPRESA').value.trim(),
+    DATA: mes ? mes.slice(5,7)+'/'+mes.slice(0,4) : ''
   };
   if(!reg.NOME){toast('Informe o nome');return}
+  if(agEditId) reg.ID = agEditId;
   loading(true,'Salvando…');
   const resp = await apiPost({action:'salvarAgendamento',registro:reg});
   loading(false);
   if(resp.ok){
-    reg.ID = resp.id;
-    reg.CRIADO_EM = new Date().toLocaleDateString('pt-BR')+' '+new Date().toTimeString().slice(0,5);
-    agRegistros.push(reg);
+    if(agEditId){
+      const r = agRegistros.find(x=>x.ID===agEditId);
+      if(r) Object.assign(r,reg);
+      toast('Agendamento atualizado');
+    }else{
+      reg.ID = resp.id;
+      reg.CRIADO_EM = new Date().toLocaleDateString('pt-BR')+' '+new Date().toTimeString().slice(0,5);
+      agRegistros.push(reg);
+      toast('Agendamento criado — selecione o status quando fizer o contato');
+    }
     renderAgendamentos();
     fecharModal('mAgNovo');
-    toast('Agendamento criado — selecione o status quando fizer o contato');
   }else toast('Erro: '+resp.erro);
 }
 
@@ -2322,6 +2371,8 @@ async function excluirUsuario(i){
     el.addEventListener('change',renderAgendamentos);
   });
   $('fAgStatus').addEventListener('change',renderAgendamentos);
+  $('filtroMesAg').addEventListener('change',renderAgendamentos);
+  $('filtroMesAg').addEventListener('input',renderAgendamentos);
   ['fIniData','fIniStatus','fAjSaida','fAjData','fAjStatus','filtroMesIni','filtroMesAj'].forEach(id=>{
     $(id).addEventListener('change',renderizar);
     $(id).addEventListener('input',renderizar);
