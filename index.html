@@ -72,7 +72,17 @@ main{padding:18px 26px;max-width:1600px;margin:0 auto}
 .tabela-wrap{background:var(--branco);border:1px solid var(--linha);border-radius:10px;overflow:auto;max-height:calc(100vh - 245px)}
 table{border-collapse:collapse;width:100%;min-width:1250px}
 thead th{position:sticky;top:0;background:var(--navy);color:#e8e4da;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;padding:9px 10px;text-align:left;white-space:nowrap;z-index:2}
-thead tr.filtros th{top:34px;background:#2a3b55;padding:5px 6px}
+thead tr.filtros th{top:0;background:#2a3b55;padding:5px 6px}
+thead tr.nomes th{top:38px}
+table.t-alto thead tr.nomes th{top:72px}
+.agenda-grade{min-width:900px}
+.agenda-grade th{position:sticky;top:0}
+.agenda-grade td{border:1px solid var(--linha);padding:0;height:30px;min-width:120px;text-align:center;font-size:11.5px}
+.agenda-grade td.hora{background:var(--navy);color:#e8e4da;font-weight:600;min-width:60px;position:sticky;left:0}
+.ag-cel{cursor:pointer;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.ag-livre{background:var(--verde-bg);color:var(--verde-tx);font-weight:700}
+.ag-ocupado{background:var(--azul-bg);color:var(--azul-tx);font-weight:600;cursor:default;flex-direction:column;line-height:1.15;padding:1px}
+.ag-ocupado small{font-weight:400;font-size:10px}
 thead tr.filtros input,thead tr.filtros select{width:100%;min-width:70px;font-size:12px;padding:5px 7px;border-radius:5px;border:none}
 .th-de-ate input{display:block;min-width:118px;margin:0 0 3px}
 .th-de-ate input:last-child{margin-bottom:0}
@@ -185,14 +195,75 @@ td.acao{white-space:nowrap}
     </div>
   </div>
   <div class="abas">
+    <button class="aba" data-aba="agendamentos" onclick="trocarAba('agendamentos')">Agendamentos <span class="cont" id="contAgend">0</span></button>
+    <button class="aba" data-aba="agenda" onclick="trocarAba('agenda')">Agenda</button>
     <button class="aba ativa" data-aba="atendimentos" onclick="trocarAba('atendimentos')">Atendimentos <span class="cont" id="contAtend">0</span></button>
     <button class="aba" data-aba="abertura" onclick="trocarAba('abertura')">Abertura de Pasta <span class="cont" id="contAbertura">0</span></button>
     <button class="aba" data-aba="iniciais" onclick="trocarAba('iniciais')">Iniciais para elaborar <span class="cont" id="contIniciais">0</span></button>
     <button class="aba" data-aba="ajuizamento" onclick="trocarAba('ajuizamento')">Ajuizamento <span class="cont" id="contAjuiz">0</span></button>
+    <button class="aba" data-aba="audiencias" onclick="trocarAba('audiencias')">Aviso de Audiência <span class="cont" id="contAud">0</span></button>
   </div>
 </header>
 
 <main>
+<!-- ================= ABA 0: AGENDAMENTOS ================= -->
+<section class="painel" id="painel-agendamentos">
+  <div class="barra">
+    <button class="btn btn-borda doc-add" style="position:relative">
+      &#128229; IMPORTAR LISTA <input type="file" accept=".xlsx,.xls,.csv,.pdf" onchange="importarAgArquivo(this,'lista')">
+    </button>
+    <button class="btn btn-borda doc-add" style="position:relative">
+      &#128229; IMPORTAR RESULTADOS <input type="file" accept=".xlsx,.xls,.csv,.pdf" onchange="importarAgArquivo(this,'resultados')">
+    </button>
+    <span style="color:var(--cinza);font-size:12px">Lista: NOME/TELEFONE/EMPRESA (cria registros) · Resultados: NOME/TELEFONE/EMPRESA/STATUS (só preenche o status dos nomes já importados)</span>
+    <div class="direita">
+      <button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button>
+    </div>
+  </div>
+  <div class="tabela-wrap">
+    <table>
+      <thead>
+        <tr class="filtros">
+          <th><input data-fg="NOME" placeholder="Filtrar"></th>
+          <th><input data-fg="TELEFONE" placeholder="Filtrar"></th>
+          <th><input data-fg="EMPRESA" placeholder="Filtrar"></th>
+          <th><select id="fAgStatus"><option value="">Todos</option></select></th>
+          <th></th><th></th>
+          <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosAg()" title="Limpar filtros">&#10005;</button></th>
+        </tr>
+        <tr class="nomes">
+          <th>Nome</th><th>Telefone</th><th>Empresa</th><th>Status</th>
+          <th>Data / horário do agendamento</th><th>Advogado</th><th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="corpoAgend"></tbody>
+    </table>
+    <div class="vazio" id="vazioAgend" style="display:none">Nenhum registro. Use IMPORTAR LISTA ou IMPORTAR RESULTADOS.</div>
+  </div>
+</section>
+
+<!-- ================= ABA 0b: AGENDA ================= -->
+<section class="painel" id="painel-agenda">
+  <div class="barra">
+    <span class="periodo-box" id="agAdvBox" style="display:none">
+      <label for="agAdvSel">Agenda de:</label>
+      <select id="agAdvSel" onchange="carregarAgenda()"></select>
+    </span>
+    <div class="sub-abas">
+      <button class="sub-aba" onclick="mudarSemana(-1)">&#8249; Semana anterior</button>
+      <button class="sub-aba ativa" id="agSemanaLabel" style="cursor:default"></button>
+      <button class="sub-aba" onclick="mudarSemana(1)">Próxima semana &#8250;</button>
+    </div>
+    <div class="direita">
+      <span style="font-size:12px">Clique nos horários para marcar/desmarcar disponibilidade (verde) · atendimentos duram 30 min</span>
+      <button class="btn btn-mini btn-borda" onclick="carregarAgenda()">&#8635; Atualizar</button>
+    </div>
+  </div>
+  <div class="tabela-wrap" style="max-height:calc(100vh - 245px)">
+    <table class="agenda-grade" id="tabAgenda"></table>
+  </div>
+</section>
+
 <!-- ================= ABA 1: ATENDIMENTOS ================= -->
 <section class="painel ativo" id="painel-atendimentos">
   <div class="barra">
@@ -220,13 +291,8 @@ td.acao{white-space:nowrap}
   </div>
 
   <div class="tabela-wrap">
-    <table id="tabAtend">
+    <table id="tabAtend" class="t-alto">
       <thead>
-        <tr>
-          <th>Data</th><th>Horário</th><th>Nome</th><th>Telefone</th><th>Empresa</th><th>Responsável</th>
-          <th>Pasta</th><th>Adv. Atendimento</th><th>Data Saída</th><th>Status</th>
-          <th>Docs</th><th>Observações</th><th></th>
-        </tr>
         <tr class="filtros">
           <th class="th-de-ate">
             <input type="date" id="fDataDe" title="De (data inicial)">
@@ -244,6 +310,11 @@ td.acao{white-space:nowrap}
           <th></th>
           <th><input data-f="OBSERVACOES" placeholder="Filtrar"></th>
           <th><button class="btn btn-mini btn-borda" onclick="limparFiltros()" title="Limpar filtros">&#10005;</button></th>
+        </tr>
+        <tr class="nomes">
+          <th>Data</th><th>Horário</th><th>Nome</th><th>Telefone</th><th>Empresa</th><th>Responsável</th>
+          <th>Pasta</th><th>Adv. Atendimento</th><th>Data Saída</th><th>Status</th>
+          <th>Docs</th><th>Observações</th><th></th>
         </tr>
       </thead>
       <tbody id="corpoAtend"></tbody>
@@ -280,10 +351,6 @@ td.acao{white-space:nowrap}
   <div class="tabela-wrap" id="wrapPendentes">
     <table>
       <thead>
-        <tr>
-          <th>Data recebido</th><th>Reclamante</th><th>Reclamado</th><th>Telefone</th>
-          <th>Nº Pasta CPJ</th><th>Documentação</th><th>Ações</th>
-        </tr>
         <tr class="filtros">
           <th></th>
           <th><input data-fa="NOME" placeholder="Filtrar"></th>
@@ -297,6 +364,10 @@ td.acao{white-space:nowrap}
           </select></th>
           <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosAp()" title="Limpar filtros">&#10005;</button></th>
         </tr>
+        <tr class="nomes">
+          <th>Data recebido</th><th>Reclamante</th><th>Reclamado</th><th>Telefone</th>
+          <th>Nº Pasta CPJ</th><th>Documentação</th><th>Ações</th>
+        </tr>
       </thead>
       <tbody id="corpoAbertura"></tbody>
     </table>
@@ -305,11 +376,8 @@ td.acao{white-space:nowrap}
 
   <!-- pastas abertas -->
   <div class="tabela-wrap" id="wrapHistorico" style="display:none">
-    <table>
+    <table class="t-alto">
       <thead>
-        <tr>
-          <th>Data abertura</th><th>Reclamante</th><th>Reclamado</th><th>Telefone</th><th>Nº Pasta CPJ</th><th>Ações</th>
-        </tr>
         <tr class="filtros">
           <th class="th-de-ate">
             <input type="date" id="fHistDe" title="De (data inicial)">
@@ -320,6 +388,9 @@ td.acao{white-space:nowrap}
           <th></th>
           <th><input data-fh="PASTA_CPJ" placeholder="Filtrar nº pasta"></th>
           <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosHist()" title="Limpar filtros">&#10005;</button></th>
+        </tr>
+        <tr class="nomes">
+          <th>Data abertura</th><th>Reclamante</th><th>Reclamado</th><th>Telefone</th><th>Nº Pasta CPJ</th><th>Ações</th>
         </tr>
       </thead>
       <tbody id="corpoHistorico"></tbody>
@@ -353,12 +424,6 @@ td.acao{white-space:nowrap}
   <div class="tabela-wrap">
     <table>
       <thead>
-        <tr>
-          <th>Data recebido</th>
-          <th>Reclamante</th><th>Reclamado</th><th>Nº Pasta</th><th>Data saída</th>
-          <th style="min-width:180px">Responsável pela inicial</th>
-          <th style="min-width:240px">Observação</th><th>Status</th><th>Ações</th>
-        </tr>
         <tr class="filtros">
           <th></th>
           <th><input data-fi="NOME" placeholder="Filtrar"></th>
@@ -375,6 +440,12 @@ td.acao{white-space:nowrap}
             <option value="FEITO">FEITO</option>
           </select></th>
           <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosIni()" title="Limpar filtros">&#10005;</button></th>
+        </tr>
+        <tr class="nomes">
+          <th>Data recebido</th>
+          <th>Reclamante</th><th>Reclamado</th><th>Nº Pasta</th><th>Data saída</th>
+          <th style="min-width:180px">Responsável pela inicial</th>
+          <th style="min-width:240px">Observação</th><th>Status</th><th>Ações</th>
         </tr>
       </thead>
       <tbody id="corpoIniciais"></tbody>
@@ -405,11 +476,6 @@ td.acao{white-space:nowrap}
   <div class="tabela-wrap">
     <table>
       <thead>
-        <tr>
-          <th>Data recebido</th>
-          <th>Reclamante</th><th>Reclamado</th><th>Nº Pasta</th><th>Data saída</th>
-          <th>Data do ajuizamento</th><th>Status</th><th>Ações</th>
-        </tr>
         <tr class="filtros">
           <th></th>
           <th><input data-fj="NOME" placeholder="Filtrar"></th>
@@ -424,10 +490,40 @@ td.acao{white-space:nowrap}
           </select></th>
           <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosAj()" title="Limpar filtros">&#10005;</button></th>
         </tr>
+        <tr class="nomes">
+          <th>Data recebido</th>
+          <th>Reclamante</th><th>Reclamado</th><th>Nº Pasta</th><th>Data saída</th>
+          <th>Data do ajuizamento</th><th>Status</th><th>Ações</th>
+        </tr>
       </thead>
       <tbody id="corpoAjuiz"></tbody>
     </table>
     <div class="vazio" id="vazioAjuiz" style="display:none">Nenhuma inicial feita ainda.</div>
+  </div>
+</section>
+
+<!-- ================= ABA 5: AVISO DE AUDIÊNCIA ================= -->
+<section class="painel" id="painel-audiencias">
+  <div class="barra">
+    <button class="btn btn-borda doc-add" style="position:relative">
+      &#128229; Importar pauta de audiências <input type="file" accept=".xlsx,.xls,.csv,.pdf" onchange="importarPauta(this)">
+    </button>
+    <span class="fechados-badge" id="badgeAudCom">AVISADOS C/ TESTEMUNHA: 0</span>
+    <span class="fechados-badge badge-amarelo" id="badgeAudSem">AVISADOS S/ TESTEMUNHA: 0</span>
+    <span class="fechados-badge badge-vermelho" id="badgeAudNao">NÃO LOCALIZADOS: 0</span>
+    <div class="direita">
+      <span class="master-so" style="display:none">
+        <button class="btn btn-mini btn-borda" onclick="exportarExcel('audiencias')" title="Exportar os dados filtrados em Excel">&#11015; Excel</button>
+      </span>
+      <button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button>
+    </div>
+  </div>
+  <div class="tabela-wrap">
+    <table>
+      <thead id="cabAud"></thead>
+      <tbody id="corpoAud"></tbody>
+    </table>
+    <div class="vazio" id="vazioAud" style="display:none">Nenhuma audiência importada. Use "Importar pauta de audiências".</div>
   </div>
 </section>
 </main>
@@ -442,14 +538,14 @@ td.acao{white-space:nowrap}
     <div class="modal-corpo">
       <div class="grade">
         <div class="campo"><label>Data</label><input type="date" id="f_DATA"></div>
-        <div class="campo"><label>Horário</label><input type="time" id="f_HORARIO"></div>
+        <div class="campo"><label>Horário</label><input type="time" step="1800" id="f_HORARIO"></div>
         <div class="campo c2"><label>Nome</label><input id="f_NOME"></div>
         <div class="campo"><label>Telefone</label><input id="f_TELEFONE"></div>
         <div class="campo c2"><label>Empresa</label><input id="f_EMPRESA"></div>
         <div class="campo"><label>Responsável</label><input id="f_RESPONSAVEL"></div>
         <div class="campo"><label>Pasta</label><input id="f_PASTA"></div>
         <div class="campo"><label>Data saída</label><input type="date" id="f_DATA_SAIDA"></div>
-        <div class="campo c2"><label>Adv. atendimento</label><input id="f_ADV_ATENDIMENTO"></div>
+        <div class="campo c2"><label>Adv. atendimento</label><input id="f_ADV_ATENDIMENTO" placeholder="Automático pela agenda (ou digite)"></div>
         <div class="campo"><label>Status</label>
           <select id="f_STATUS" onchange="condicionais()"><option value=""></option></select>
         </div>
@@ -472,6 +568,9 @@ td.acao{white-space:nowrap}
           <div id="docsObrig"></div>
           <div class="docs-grupo-titulo">Se você tiver</div>
           <div id="docsOpc"></div>
+          <div class="docs-grupo-titulo">Outros</div>
+          <div id="docsOutros"></div>
+          <button class="btn btn-mini btn-borda" onclick="adicionarOutroDoc()" title="Anexar um documento com nome personalizado">+ Adicionar mais documentos</button>
         </div>
       </div>
     </div>
@@ -534,12 +633,23 @@ td.acao{white-space:nowrap}
         <input type="text" id="novoNome" placeholder="Nome do usuário">
         <input type="text" id="novaSenha" placeholder="Senha" style="width:120px">
         <span class="abas-check">
+          <label><input type="checkbox" id="novoAgend"> Agendamentos</label>
+          <label><input type="checkbox" id="novoAgenda"> Agenda</label>
           <label><input type="checkbox" id="novoAtend" checked> Atendimentos</label>
           <label><input type="checkbox" id="novoAbert"> Abertura de Pasta</label>
           <label><input type="checkbox" id="novoInic"> Iniciais</label>
           <label><input type="checkbox" id="novoAjuiz"> Ajuizamento</label>
+          <label><input type="checkbox" id="novoAud"> Aviso de Audiência</label>
         </span>
         <button class="btn btn-mini btn-principal" onclick="adicionarUsuario()">+ Adicionar</button>
+      </div>
+      <div style="border-top:2px solid var(--navy);margin-top:16px;padding-top:12px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.6px;color:var(--navy);text-transform:uppercase;margin-bottom:8px">Alterar senha do master</div>
+        <div class="usu-linha" style="border-style:dashed">
+          <input type="password" id="msAtual" placeholder="Senha atual" style="width:140px">
+          <input type="password" id="msNova" placeholder="Nova senha" style="width:140px">
+          <button class="btn btn-mini btn-principal" onclick="alterarSenhaMaster()">Alterar senha</button>
+        </div>
       </div>
     </div>
   </div>
@@ -606,9 +716,14 @@ function dataISO(br){ // dd/mm/yyyy -> yyyy-mm-dd
   let a=m[3].length===2?'20'+m[3]:m[3];
   return `${a}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
 }
+function chaveData(v){const iso=dataISO(v);return iso||'9999-12-31'}
+function chaveCriado(v){
+  const m = String(v||'').match(/(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}:\d{2})?/);
+  return m ? `${m[3]}-${m[2]}-${m[1]} ${m[4]||''}` : '9999-12-31';
+}
 function totalDocs(r){
   let n=0;
-  [...DOCS_OBRIG,...DOCS_OPC].forEach(([c])=>{try{n+=JSON.parse(r[c]||'[]').length}catch(e){}});
+  [...DOCS_OBRIG,...DOCS_OPC,['DOC_OUTROS']].forEach(([c])=>{try{n+=JSON.parse(r[c]||'[]').length}catch(e){}});
   return n;
 }
 
@@ -627,11 +742,16 @@ async function carregar(){
   if(API_URL.indexOf('COLE_AQUI')===0){toast('Configure a API_URL no início do arquivo index.html');renderizar();return}
   loading(true,'Carregando dados…');
   try{
-    const r = await apiGet();
+    const [r, ra, au] = await Promise.all([apiGet(), apiPost({action:'listarAgendamentos'}), apiPost({action:'listarAudiencias'})]);
     if(r.ok){registros=r.registros}else{toast('Erro: '+r.erro)}
+    if(ra.ok){agRegistros=ra.registros}
+    if(au.ok){audRegistros=au.registros;audCabecalhos=au.cabecalhos||{}}
   }catch(e){toast('Falha de conexão com o Apps Script')}
   loading(false);
   renderizar();
+  renderAgendamentos();
+  montarCabecalhoAud();
+  renderAudiencias();
 }
 
 function filtrosAtivos(){
@@ -657,6 +777,7 @@ function renderizar(){
       (!dAte || (dISO && dISO<=dAte)) &&
       Object.entries(f).every(([c,v])=>normaliza(r[c]).includes(v));
   });
+  visiveis.sort((a,b)=>(chaveData(a.DATA)+' '+(a.HORARIO||'')).localeCompare(chaveData(b.DATA)+' '+(b.HORARIO||'')));
   const corpo = $('corpoAtend');
   corpo.innerHTML = visiveis.map(r=>{
     const cor = STATUS_CORES[normaliza(r.STATUS)]||'';
@@ -676,7 +797,8 @@ function renderizar(){
       </td>
     </tr>`}).join('');
   $('vazioAtend').style.display = visiveis.length?'none':'block';
-  $('contAtend').textContent = registros.length;
+  const mesAtual = new Date().toISOString().slice(0,7);
+  $('contAtend').textContent = registros.filter(r=>normaliza(r.STATUS)==='FECHOU' && dataISO(r.DATA_FECHAMENTO).slice(0,7)===mesAtual).length; // fechados do mês
   $('resumoFiltro').textContent = (Object.keys(f).length||mes||dDe||dAte)?`${visiveis.length} de ${registros.length} registros`:'';
   $('badgeFechados').textContent = 'CLIENTES FECHADOS: '+visiveis.filter(r=>normaliza(r.STATUS)==='FECHOU').length;
 
@@ -699,6 +821,7 @@ function renderizar(){
   $('badgePassivo').textContent = 'PASSIVO: '+(nNaoAbertas+nNaoElaboradas+nNaoAjuizadas);
   const historico = pastasAbertas.filter(r=>
     (!mesAp || dataISO(r.DATA_ABERTURA).slice(0,7)===mesAp));
+  pendentes.sort((a,b)=>chaveData(a.DATA_FECHAMENTO).localeCompare(chaveData(b.DATA_FECHAMENTO)));
 
   $('badgeAbertas').textContent = 'PASTAS ABERTAS: '+historico.length;
   $('badgeNaoAbertas').textContent = 'PASTAS NÃO ABERTAS: '+pendentes.length;
@@ -737,6 +860,7 @@ function renderizar(){
       (!hAte || (dISO && dISO<=hAte)) &&
       Object.entries(fh).every(([c,v])=>normaliza(r[c]).includes(v));
   });
+  histVisiveis.sort((a,b)=>chaveData(a.DATA_ABERTURA).localeCompare(chaveData(b.DATA_ABERTURA)));
   $('corpoHistorico').innerHTML = histVisiveis.map(r=>`<tr class="st-verde">
       <td>${esc(dataBR(r.DATA_ABERTURA))}</td>
       <td><b>${esc(r.NOME)}</b></td><td>${esc(r.EMPRESA)}</td><td>${esc(r.TELEFONE)}</td>
@@ -750,7 +874,7 @@ function renderizar(){
   $('vazioHistorico').style.display = histVisiveis.length?'none':'block';
   $('subPendentes').textContent = 'Em aberto ('+pendentes.length+')';
   $('subHistorico').textContent = 'Pastas abertas ('+historico.length+')';
-  $('contAbertura').textContent = fechados.length;
+  $('contAbertura').textContent = nNaoAbertas; // pastas ainda não abertas
 
   /* --- aba 3: iniciais para elaborar --- */
   const INI_CORES = {'FEITO':'verde','PENDENTE':'vermelho','PENDENTE DE DOCUMENTOS':'amarelo','PENDENTE DE INFORMACOES':'amarelo'};
@@ -769,6 +893,7 @@ function renderizar(){
       (!iniSt || statusIni(r)===iniSt) &&
       Object.entries(fi).every(([c,v])=>normaliza(r[c]).includes(v));
   });
+  iniVisiveis.sort((a,b)=>chaveData(a.DATA_ABERTURA).localeCompare(chaveData(b.DATA_ABERTURA)));
   $('corpoIniciais').innerHTML = iniVisiveis.map(r=>{
     const st = statusIni(r);
     const cor = INI_CORES[st]||'vermelho';
@@ -802,7 +927,7 @@ function renderizar(){
   $('badgeIniPendInfo').textContent = 'PEND. INFORMAÇÕES: '+iniPendInfo;
   $('badgeIniFeitos').textContent = 'FEITOS: '+iniVisiveis.filter(r=>statusIni(r)==='FEITO').length;
   $('vazioIniciais').style.display = iniVisiveis.length?'none':'block';
-  $('contIniciais').textContent = pastasAbertas.length;
+  $('contIniciais').textContent = nNaoElaboradas; // iniciais pendentes de fazer
 
   /* --- aba 4: ajuizamento --- */
   const feitas = pastasAbertas.filter(r=>statusIni(r)==='FEITO');
@@ -818,6 +943,7 @@ function renderizar(){
       (!ajSt || statusAj(r)===ajSt) &&
       Object.entries(fj).every(([c,v])=>normaliza(r[c]).includes(v));
   });
+  ajVisiveis.sort((a,b)=>chaveData(a.DATA_FEITO).localeCompare(chaveData(b.DATA_FEITO)));
   $('corpoAjuiz').innerHTML = ajVisiveis.map(r=>{
     const aj = statusAj(r)==='AJUIZADO';
     return `<tr class="${aj?'st-verde':'st-vermelho'}">
@@ -843,7 +969,7 @@ function renderizar(){
   $('badgeNaoAjuizados').textContent = 'NÃO AJUIZADOS: '+(ajVisiveis.length-nAjuizados);
   dadosExport = {atendimentos:visiveis, aberturaPendentes:pendentes, pastasAbertas:histVisiveis, iniciais:iniVisiveis, ajuizamento:ajVisiveis};
   $('vazioAjuiz').style.display = ajVisiveis.length?'none':'block';
-  $('contAjuiz').textContent = feitas.length;
+  $('contAjuiz').textContent = nNaoAjuizadas; // processos não ajuizados
 }
 
 /* ===================== ficha (modal) ===================== */
@@ -891,6 +1017,7 @@ async function salvarFicha(){
     const r = await apiPost({action:'salvar',registro:reg});
     if(r.ok){
       reg.ID = r.id;
+      if(r.advogado){reg.ADV_ATENDIMENTO=r.advogado;$('f_ADV_ATENDIMENTO').value=r.advogado;toast('Atendimento distribuído para '+r.advogado)}
       const idx = registros.findIndex(x=>x.ID===r.id);
       if(idx>=0){registros[idx]={...registros[idx],...reg}}else{registros.push(reg)}
       fichaAtual = registros.find(x=>x.ID===r.id);
@@ -944,6 +1071,7 @@ function renderDocs(){
     </div>`};
   $('docsObrig').innerHTML = DOCS_OBRIG.map(linha).join('');
   $('docsOpc').innerHTML = DOCS_OPC.map(linha).join('');
+  $('docsOutros').innerHTML = linha(['DOC_OUTROS','Outros documentos']);
 }
 
 function lerArquivoBase64(file){
@@ -972,7 +1100,17 @@ function comprimirImagem(file){
   });
 }
 
-async function anexar(coluna,input){
+function adicionarOutroDoc(){
+  if(!fichaAtual){toast('Salve o atendimento primeiro');return}
+  const nome = prompt('Nome do documento (ex.: Procuração, Contrato, Sentença anterior):');
+  if(!nome || !nome.trim()) return;
+  const input = document.createElement('input');
+  input.type='file'; input.multiple=true; input.accept='.pdf,image/*';
+  input.onchange = () => anexar('DOC_OUTROS', input, nome.trim());
+  input.click();
+}
+
+async function anexar(coluna,input,prefixo){
   if(!fichaAtual){toast('Salve o atendimento primeiro');return}
   const files=[...input.files]; input.value='';
   for(let i=0;i<files.length;i++){
@@ -980,7 +1118,8 @@ async function anexar(coluna,input){
     try{
       const f = await comprimirImagem(files[i]);
       const b64 = await lerArquivoBase64(f);
-      const r = await apiPost({action:'uploadDoc',id:fichaAtual.ID,nome:fichaAtual.NOME,coluna,arquivoNome:f.name,mimeType:f.type||'application/octet-stream',base64:b64});
+      const nomeArq = (prefixo?prefixo+' - ':'')+f.name;
+      const r = await apiPost({action:'uploadDoc',id:fichaAtual.ID,nome:fichaAtual.NOME,coluna,arquivoNome:nomeArq,mimeType:f.type||'application/octet-stream',base64:b64});
       if(r.ok){fichaAtual[coluna]=JSON.stringify(r.lista)}
       else toast('Erro no envio: '+r.erro);
     }catch(e){toast('Falha ao enviar '+files[i].name)}
@@ -1254,6 +1393,420 @@ async function confirmarImportacao(){
   loading(false);
 }
 
+/* ===================== agendamentos ===================== */
+let agRegistros = [];
+
+function renderAgendamentos(){
+  const fg = {};
+  document.querySelectorAll('[data-fg]').forEach(el=>{if(el.value)fg[el.dataset.fg]=normaliza(el.value)});
+  const stFiltro = $('fAgStatus').value;
+  const visiveis = agRegistros.filter(r=>
+    (!stFiltro || normaliza(r.STATUS)===normaliza(stFiltro)) &&
+    Object.entries(fg).every(([c,v])=>normaliza(r[c]).includes(v)));
+
+  // opções de status: AGENDADO + os que vieram das importações
+  const statusSet = new Set(['AGENDADO']);
+  agRegistros.forEach(r=>{if(String(r.STATUS||'').trim())statusSet.add(String(r.STATUS).trim().toUpperCase())});
+  const selF = $('fAgStatus');
+  const atualF = selF.value;
+  selF.innerHTML = '<option value="">Todos</option>'+[...statusSet].sort().map(s=>`<option ${s===atualF?'selected':''}>${esc(s)}</option>`).join('');
+
+  visiveis.sort((a,b)=>chaveCriado(a.CRIADO_EM).localeCompare(chaveCriado(b.CRIADO_EM)));
+  $('corpoAgend').innerHTML = visiveis.map(r=>{
+    const ag = normaliza(r.STATUS)==='AGENDADO';
+    const opcoes = [...statusSet].sort().map(s=>`<option ${normaliza(r.STATUS)===normaliza(s)?'selected':''}>${esc(s)}</option>`).join('');
+    return `<tr class="${ag?'st-verde':''}">
+      <td><b>${esc(r.NOME)}</b></td>
+      <td>${esc(r.TELEFONE)}</td>
+      <td>${esc(r.EMPRESA)}</td>
+      <td>
+        <select onchange="agMudaStatus('${r.ID}',this.value)">
+          <option value=""></option>${opcoes}
+        </select>
+      </td>
+      <td style="min-width:220px" id="agSlot_${r.ID}">
+        ${ag && r.AGENDA_DATA ? `<b>${esc(dataBR(r.AGENDA_DATA))}</b> às <b>${esc(r.AGENDA_HORA)}</b>` : `
+          <span style="display:${ag?'inline-flex':'none'};gap:4px;align-items:center">
+            <input type="date" class="ap-input" id="agData_${r.ID}">
+            <input type="time" step="1800" style="width:95px" id="agHora_${r.ID}">
+            <button class="btn btn-mini btn-principal" onclick="agendarCliente('${r.ID}')">Agendar</button>
+          </span>`}
+      </td>
+      <td>${esc(r.ADVOGADO||'')}</td>
+      <td class="acao">
+        ${ag && r.AGENDA_DATA ? `<button class="btn btn-mini btn-borda" onclick="agRemarcar('${r.ID}')" title="Escolher outro dia/horário">Remarcar</button>`:''}
+        <button class="btn btn-mini btn-perigo" onclick="excluirAgendamento('${r.ID}')">Excluir</button>
+      </td>
+    </tr>`}).join('');
+  $('vazioAgend').style.display = visiveis.length?'none':'block';
+  $('contAgend').textContent = agRegistros.filter(r=>normaliza(r.STATUS)!=='AGENDADO').length; // passivo: não agendados
+}
+function limparFiltrosAg(){
+  document.querySelectorAll('[data-fg]').forEach(el=>el.value='');
+  $('fAgStatus').value='';
+  renderAgendamentos();
+}
+
+async function agMudaStatus(id,valor){
+  const r = agRegistros.find(x=>x.ID===id);
+  if(normaliza(valor)==='AGENDADO'){
+    // abre os campos de data/horário; o agendamento em si acontece no botão Agendar
+    if(r){r.STATUS='AGENDADO';}
+    renderAgendamentos();
+    return;
+  }
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvarAgendamento',registro:{ID:id,STATUS:valor,AGENDA_DATA:'',AGENDA_HORA:'',ADVOGADO:''}});
+  loading(false);
+  if(resp.ok){if(r){r.STATUS=valor;r.AGENDA_DATA='';r.AGENDA_HORA='';r.ADVOGADO=''}renderAgendamentos();toast('Status salvo')}
+  else toast('Erro: '+resp.erro);
+}
+
+async function agendarCliente(id){
+  const data = dataBR($('agData_'+id).value);
+  const hora = $('agHora_'+id).value;
+  if(!data||!hora){toast('Informe a data e o horário do agendamento');return}
+  loading(true,'Verificando agenda dos advogados…');
+  const resp = await apiPost({action:'agendarCliente',id,data,hora:hora.slice(0,5)});
+  loading(false);
+  if(resp.ok){
+    const r = agRegistros.find(x=>x.ID===id);
+    if(r){r.STATUS='AGENDADO';r.AGENDA_DATA=data;r.AGENDA_HORA=hora.slice(0,5);r.ADVOGADO=resp.advogado}
+    renderAgendamentos();
+    toast('Cliente agendado com '+resp.advogado+' em '+data+' às '+hora.slice(0,5));
+  }else toast(resp.erro);
+}
+
+async function agRemarcar(id){
+  const r = agRegistros.find(x=>x.ID===id);
+  if(!r)return;
+  r.AGENDA_DATA='';r.AGENDA_HORA='';
+  renderAgendamentos();
+}
+
+async function excluirAgendamento(id){
+  const r = agRegistros.find(x=>x.ID===id);
+  if(!confirm('Excluir '+(r?r.NOME:'este registro')+' dos agendamentos?'))return;
+  loading(true,'Excluindo…');
+  const resp = await apiPost({action:'excluirAgendamento',id});
+  loading(false);
+  if(resp.ok){agRegistros=agRegistros.filter(x=>x.ID!==id);renderAgendamentos();toast('Excluído')}
+  else toast('Erro: '+resp.erro);
+}
+
+/* ---------- importação de agendamentos (lista e resultados) ---------- */
+let agImportModo = 'lista';
+
+function importarAgArquivo(input,modo){
+  agImportModo = modo;
+  const file = input.files[0]; input.value='';
+  if(!file)return;
+  const ext = file.name.toLowerCase().split('.').pop();
+  if(ext==='pdf'){lerPdfLinhas(file).then(l=>agPreImport(l)).catch(()=>toast('Erro ao ler o PDF'));}
+  else{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const wb = XLSX.read(e.target.result,{type:'array'});
+      const linhas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
+      agPreImport(linhas.filter(l=>l.some(c=>String(c).trim()!=='')));
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function agPreImport(linhas){
+  if(!linhas||!linhas.length){toast('Arquivo vazio ou sem texto');return}
+  // pula o cabeçalho se a primeira linha contiver NOME
+  const primeira = linhas[0].map(normaliza);
+  const dados = (primeira.includes('NOME')?linhas.slice(1):linhas)
+    .filter(l=>String(l[0]||'').trim());
+  if(!dados.length){toast('Nenhuma linha com nome preenchido');return}
+  const regs = dados.map(l=>({
+    NOME:String(l[0]||'').trim(),
+    TELEFONE:String(l[1]||'').trim(),
+    EMPRESA:String(l[2]||'').trim(),
+    STATUS: agImportModo==='resultados'?String(l[3]||'').trim().toUpperCase():''
+  }));
+  if(agImportModo==='resultados'){
+    // conciliação: apenas preenche o status dos registros já existentes (não cria novos)
+    if(!confirm('Conciliar '+regs.length+' resultado(s) com os agendamentos existentes? Nenhum registro novo será criado.'))return;
+    (async()=>{
+      loading(true,'Conciliando resultados…');
+      const resp = await apiPost({action:'conciliarResultados',registros:regs});
+      loading(false);
+      if(resp.ok){
+        let msg = resp.atualizados+' status atualizados';
+        if(resp.naoEncontrados.length){
+          msg += ' · '+resp.naoEncontrados.length+' nome(s) não encontrados';
+          alert('Nomes não encontrados nos agendamentos (status não aplicado):\n\n- '+resp.naoEncontrados.join('\n- '));
+        }
+        toast(msg);
+        await carregar();
+      }else toast('Erro: '+resp.erro);
+    })();
+    return;
+  }
+  if(!confirm('Importar '+regs.length+' registro(s) para os Agendamentos?'))return;
+  (async()=>{
+    loading(true,'Importando '+regs.length+' registros…');
+    const resp = await apiPost({action:'salvarAgendamentosLote',registros:regs});
+    loading(false);
+    if(resp.ok){toast(resp.total+' registros importados');await carregar()}
+    else toast('Erro: '+resp.erro);
+  })();
+}
+
+// extração de linhas/colunas de PDF (compartilhada)
+async function lerPdfLinhas(file){
+  loading(true,'Lendo PDF…');
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjsLib.getDocument({data:buf}).promise;
+  const linhas = [];
+  for(let p=1;p<=doc.numPages;p++){
+    const pg = await doc.getPage(p);
+    const tc = await pg.getTextContent();
+    const mapa = {};
+    tc.items.forEach(it=>{
+      const y = Math.round(it.transform[5]/3)*3;
+      (mapa[y]=mapa[y]||[]).push({x:it.transform[4],t:it.str});
+    });
+    Object.keys(mapa).map(Number).sort((a,b)=>b-a).forEach(y=>{
+      const itens = mapa[y].sort((a,b)=>a.x-b.x);
+      const cels=[]; let atual=''; let fimX=null;
+      itens.forEach(it=>{
+        if(fimX!==null && it.x-fimX>18){cels.push(atual.trim());atual=''}
+        atual+=(atual?' ':'')+it.t;
+        fimX=it.x+it.t.length*5;
+      });
+      if(atual.trim())cels.push(atual.trim());
+      if(cels.length)linhas.push(cels);
+    });
+  }
+  loading(false);
+  return linhas;
+}
+
+/* ===================== agenda (calendário semanal) ===================== */
+let agSemana = null;       // Date da segunda-feira da semana exibida
+let agendaDados = {disponibilidade:[],agendados:[]};
+
+const AG_HORAS = (()=>{const h=[];for(let m=8*60;m<18*60;m+=30){h.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'))}return h})();
+const AG_DIAS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+
+function inicioSemana(d){
+  const x = new Date(d); const dia = (x.getDay()+6)%7; // 0=segunda
+  x.setDate(x.getDate()-dia); x.setHours(0,0,0,0); return x;
+}
+function fmtData(d){return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()}
+
+function advogadoAtual(){
+  if(usuario && usuario.master){return $('agAdvSel').value}
+  return usuario ? usuario.nome : '';
+}
+
+function mudarSemana(n){
+  agSemana.setDate(agSemana.getDate()+7*n);
+  renderAgenda();
+}
+
+async function carregarAgenda(){
+  if(!agSemana) agSemana = inicioSemana(new Date());
+  if(usuario && usuario.master){
+    // popula o seletor de advogados (usuários com acesso à agenda)
+    $('agAdvBox').style.display='inline-flex';
+    if(!$('agAdvSel').options.length){
+      const r = await apiPost({action:'listarUsuarios',senhaMaster:usuario.senha});
+      if(r.ok){
+        const advs = r.usuarios.filter(u=>u.abas.split(',').includes('agenda')).map(u=>u.nome);
+        $('agAdvSel').innerHTML = advs.map(n=>`<option>${esc(n)}</option>`).join('') || '<option value="">(nenhum usuário com acesso à agenda)</option>';
+      }
+    }
+  }
+  loading(true,'Carregando agenda…');
+  const resp = await apiPost({action:'listarAgenda',advogado: usuario.master ? '' : usuario.nome});
+  loading(false);
+  if(resp.ok){agendaDados = resp; renderAgenda();}
+  else toast('Erro: '+resp.erro);
+}
+
+function renderAgenda(){
+  const adv = advogadoAtual();
+  const dias = AG_DIAS.map((_,i)=>{const d=new Date(agSemana);d.setDate(d.getDate()+i);return d});
+  $('agSemanaLabel').textContent = fmtData(dias[0])+' a '+fmtData(dias[5]);
+  const dispSet = new Set(agendaDados.disponibilidade.filter(d=>d.advogado===adv).map(d=>d.data+'|'+d.hora));
+  const ocupMapa = {};
+  agendaDados.agendados.filter(a=>a.ADVOGADO===adv).forEach(a=>{ocupMapa[a.AGENDA_DATA+'|'+a.AGENDA_HORA]=a});
+
+  let htmlTab = '<thead><tr><th style="min-width:60px">Hora</th>'+
+    dias.map((d,i)=>`<th>${AG_DIAS[i]}<br><small style="font-weight:400">${fmtData(d).slice(0,5)}</small></th>`).join('')+'</tr></thead><tbody>';
+  AG_HORAS.forEach(h=>{
+    htmlTab += `<tr><td class="hora">${h}</td>`;
+    dias.forEach(d=>{
+      const chave = fmtData(d)+'|'+h;
+      const ocup = ocupMapa[chave];
+      if(ocup){
+        htmlTab += `<td><div class="ag-cel ag-ocupado" title="${esc(ocup.NOME)} · ${esc(ocup.TELEFONE)} · ${esc(ocup.EMPRESA)}">${esc(ocup.NOME)}<small>${esc(ocup.TELEFONE)}</small></div></td>`;
+      }else if(dispSet.has(chave)){
+        htmlTab += `<td><div class="ag-cel ag-livre" onclick="toggleDisp('${fmtData(d)}','${h}')" title="Disponível — clique para desmarcar">Disponível</div></td>`;
+      }else{
+        htmlTab += `<td><div class="ag-cel" onclick="toggleDisp('${fmtData(d)}','${h}')" title="Clique para marcar como disponível">&nbsp;</div></td>`;
+      }
+    });
+    htmlTab += '</tr>';
+  });
+  $('tabAgenda').innerHTML = htmlTab+'</tbody>';
+}
+
+async function toggleDisp(data,hora){
+  const adv = advogadoAtual();
+  if(!adv){toast('Selecione o advogado');return}
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'toggleDisp',advogado:adv,data,hora});
+  loading(false);
+  if(resp.ok){
+    if(resp.disponivel){agendaDados.disponibilidade.push({advogado:adv,data,hora})}
+    else{agendaDados.disponibilidade = agendaDados.disponibilidade.filter(d=>!(d.advogado===adv&&d.data===data&&d.hora===hora))}
+    renderAgenda();
+  }else toast('Erro: '+resp.erro);
+}
+
+/* ===================== aviso de audiência ===================== */
+let audRegistros = [];
+let audCabecalhos = {};   // rótulos capturados do arquivo importado {B:'...', D:'...', ...}
+const AUD_LETRAS = ['B','D','E','G','H','I','J','K','L','M','N','O','Q','R'];
+const AUD_IDX = {B:1,D:3,E:4,G:6,H:7,I:8,J:9,K:10,L:11,M:12,N:13,O:14,Q:16,R:17};
+const AUD_STATUS = {
+  'CLIENTE AVISADO COM TESTEMUNHA':'verde',
+  'CLIENTE AVISADO SEM TESTEMUNHA':'amarelo',
+  'CLIENTE NÃO LOCALIZADO':'vermelho'
+};
+let audFiltros = {};      // valores dos filtros (preservados entre renderizações)
+
+function montarCabecalhoAud(){
+  const rot = L => esc(audCabecalhos[L] || ('Coluna '+L));
+  let filtros = '<tr class="filtros">'+AUD_LETRAS.map(L=>
+    `<th><input data-fx="COL_${L}" value="${esc(audFiltros['COL_'+L]||'')}" placeholder="Filtrar"></th>`).join('');
+  filtros += `<th></th><th></th>
+    <th><select id="fAudStatus">
+      <option value="">Todos</option>
+      ${Object.keys(AUD_STATUS).map(s=>`<option ${audFiltros.STATUS===s?'selected':''}>${s}</option>`).join('')}
+      <option value="__SEM__" ${audFiltros.STATUS==='__SEM__'?'selected':''}>(sem status)</option>
+    </select></th>
+    <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosAud()" title="Limpar filtros">&#10005;</button></th></tr>`;
+  let nomes = '<tr class="nomes">'+AUD_LETRAS.map(L=>`<th>${rot(L)}</th>`).join('')+
+    '<th>Testemunhas</th><th>Carta convite</th><th>Status</th><th>Ações</th></tr>';
+  $('cabAud').innerHTML = filtros + nomes;
+  document.querySelectorAll('[data-fx]').forEach(el=>{
+    el.addEventListener('input',()=>{audFiltros[el.dataset.fx]=el.value;renderAudiencias()});
+  });
+  $('fAudStatus').addEventListener('change',()=>{audFiltros.STATUS=$('fAudStatus').value;renderAudiencias()});
+}
+function limparFiltrosAud(){audFiltros={};montarCabecalhoAud();renderAudiencias()}
+
+function renderAudiencias(){
+  const visiveis = audRegistros.filter(r=>{
+    for(const [c,v] of Object.entries(audFiltros)){
+      if(!v) continue;
+      if(c==='STATUS'){
+        if(v==='__SEM__'){ if(String(r.STATUS||'').trim()) return false; }
+        else if(normaliza(r.STATUS)!==normaliza(v)) return false;
+      }else if(!normaliza(r[c]).includes(normaliza(v))) return false;
+    }
+    return true;
+  });
+  visiveis.sort((a,b)=>(chaveData(a.COL_E)+' '+(a.COL_G||'')).localeCompare(chaveData(b.COL_E)+' '+(b.COL_G||'')));
+  $('corpoAud').innerHTML = visiveis.map(r=>{
+    const cor = AUD_STATUS[String(r.STATUS||'').trim().toUpperCase().replace('NAO','NÃO')]||AUD_STATUS[String(r.STATUS||'').trim().toUpperCase()]||'';
+    return `<tr class="${cor?('st-'+cor):''}">
+      ${AUD_LETRAS.map(L=>`<td>${esc(r['COL_'+L])}</td>`).join('')}
+      <td style="text-align:center">${esc(r.TESTEMUNHAS)}</td>
+      <td style="text-align:center">${esc(r.CARTA_CONVITE)}</td>
+      <td>
+        <select onchange="salvarAudStatus('${r.ID}',this.value)">
+          <option value=""></option>
+          ${Object.keys(AUD_STATUS).map(s=>`<option ${normaliza(r.STATUS)===normaliza(s)?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td class="acao"><button class="btn btn-mini btn-perigo" onclick="excluirAudiencia('${r.ID}')">Excluir</button></td>
+    </tr>`}).join('');
+  $('vazioAud').style.display = visiveis.length?'none':'block';
+  const st = r => normaliza(r.STATUS);
+  $('badgeAudCom').textContent = 'AVISADOS C/ TESTEMUNHA: '+visiveis.filter(r=>st(r)==='CLIENTE AVISADO COM TESTEMUNHA').length;
+  $('badgeAudSem').textContent = 'AVISADOS S/ TESTEMUNHA: '+visiveis.filter(r=>st(r)==='CLIENTE AVISADO SEM TESTEMUNHA').length;
+  $('badgeAudNao').textContent = 'NÃO LOCALIZADOS: '+visiveis.filter(r=>st(r)==='CLIENTE NAO LOCALIZADO').length;
+  // passivo da aba: clientes ainda não avisados
+  $('contAud').textContent = audRegistros.filter(r=>st(r).indexOf('AVISADO')<0).length;
+}
+
+async function salvarAudStatus(id,valor){
+  const r = audRegistros.find(x=>x.ID===id);
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvarAudiencia',registro:{ID:id,STATUS:valor}});
+  loading(false);
+  if(resp.ok){if(r)r.STATUS=valor;renderAudiencias();toast('Status salvo')}
+  else toast('Erro: '+resp.erro);
+}
+
+async function excluirAudiencia(id){
+  if(!confirm('Excluir esta audiência da lista?'))return;
+  loading(true,'Excluindo…');
+  const resp = await apiPost({action:'excluirAudiencia',id});
+  loading(false);
+  if(resp.ok){audRegistros=audRegistros.filter(x=>x.ID!==id);renderAudiencias();toast('Excluído')}
+  else toast('Erro: '+resp.erro);
+}
+
+function importarPauta(input){
+  const file = input.files[0]; input.value='';
+  if(!file)return;
+  const ext = file.name.toLowerCase().split('.').pop();
+  if(ext==='pdf'){lerPdfLinhas(file).then(l=>processarPauta(l)).catch(()=>toast('Erro ao ler o PDF'));}
+  else{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const wb = XLSX.read(e.target.result,{type:'array'});
+      const linhas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
+      processarPauta(linhas);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function processarPauta(linhas){
+  linhas = (linhas||[]).filter(l=>l.some(c=>String(c).trim()!==''));
+  if(linhas.length<2){toast('O arquivo precisa ter a linha de cabeçalho e ao menos uma audiência');return}
+  // captura os nomes das colunas B,D,E,...,R da primeira linha do arquivo
+  const cab = {};
+  AUD_LETRAS.forEach(L=>{cab[L]=String(linhas[0][AUD_IDX[L]]||'').trim()});
+  const dados = linhas.slice(1);
+  const regs = dados.map(l=>{
+    const reg = {};
+    AUD_LETRAS.forEach(L=>{reg['COL_'+L]=String(l[AUD_IDX[L]]??'').trim()});
+    const O = normaliza(l[AUD_IDX.O]);
+    const Q = normaliza(l[AUD_IDX.Q]);
+    const R = normaliza(l[AUD_IDX.R]);
+    reg.TESTEMUNHAS = Q==='SS'?'2':(Q==='S'?'1':'');
+    reg.CARTA_CONVITE = R==='SS'?'SIM (2)':(R==='S'?'SIM':'');
+    // coluna O com "S" = cliente já avisado
+    if(O==='S'){
+      reg.STATUS = (Q==='S'||Q==='SS') ? 'CLIENTE AVISADO COM TESTEMUNHA' : 'CLIENTE AVISADO SEM TESTEMUNHA';
+    }else{
+      reg.STATUS = '';
+    }
+    return reg;
+  }).filter(r=>AUD_LETRAS.some(L=>r['COL_'+L]!==''));
+  if(!regs.length){toast('Nenhuma linha de audiência encontrada');return}
+  if(!confirm('Importar '+regs.length+' audiência(s) para o Aviso de Audiência?'))return;
+  (async()=>{
+    loading(true,'Importando '+regs.length+' audiências…');
+    const resp = await apiPost({action:'salvarAudienciasLote',registros:regs,cabecalhos:cab});
+    loading(false);
+    if(resp.ok){toast(resp.total+' audiências importadas');await carregar()}
+    else toast('Erro: '+resp.erro);
+  })();
+}
+
 /* ===================== exportação (master) ===================== */
 let dadosExport = {};
 let subAtual = 'pendentes';
@@ -1285,6 +1838,12 @@ function baseExport(aba){
   if(aba==='abertura') return subAtual==='historico' ? 'pastasAbertas' : 'aberturaPendentes';
   return aba;
 }
+function defsAudiencias(){
+  return {titulo:'Aviso de Audiência', colunas:[
+    ...AUD_LETRAS.map(L=>['COL_'+L, audCabecalhos[L]||('Coluna '+L), 55]),
+    ['TESTEMUNHAS','Testemunhas',45],['CARTA_CONVITE','Carta convite',45],['STATUS','Status',110]
+  ]};
+}
 function valorExport(r,campo){
   if(['DATA','DATA_SAIDA','DATA_FECHAMENTO','DATA_ABERTURA','DATA_FEITO','AJUIZ_DATA'].includes(campo)) return dataBR(r[campo]);
   if(campo==='INICIAL_STATUS') return r.INICIAL_STATUS||'PENDENTE';
@@ -1294,8 +1853,8 @@ function valorExport(r,campo){
 
 function exportarExcel(aba){
   const chave = baseExport(aba);
-  const def = EXPORT_DEFS[chave];
-  const dados = dadosExport[chave]||[];
+  const def = aba==='audiencias' ? defsAudiencias() : EXPORT_DEFS[chave];
+  const dados = aba==='audiencias' ? audRegistros : (dadosExport[chave]||[]);
   if(!dados.length){toast('Não há dados para exportar');return}
   const linhas = dados.map(r=>{
     const o={};
@@ -1398,7 +1957,8 @@ function aplicarLogin(){
   document.querySelectorAll('.aba').forEach(b=>{
     b.style.display = pode(b.dataset.aba)?'inline-flex':'none';
   });
-  const primeira = ['atendimentos','abertura','iniciais','ajuizamento'].find(pode) || 'atendimentos';
+  $('agAdvSel').innerHTML='';
+  const primeira = ['agendamentos','agenda','atendimentos','abertura','iniciais','ajuizamento','audiencias'].find(pode) || 'atendimentos';
   trocarAba(primeira);
   carregar();
 }
@@ -1417,6 +1977,7 @@ function trocarAba(nome){
   document.querySelectorAll('.aba').forEach(b=>b.classList.toggle('ativa',b.dataset.aba===nome));
   document.querySelectorAll('.painel').forEach(p=>p.classList.remove('ativo'));
   $('painel-'+nome).classList.add('ativo');
+  if(nome==='agenda') carregarAgenda();
 }
 
 async function abrirUsuarios(){
@@ -1436,10 +1997,13 @@ function renderUsuarios(){
       <input type="text" id="uNome_${i}" value="${esc(u.nome)}">
       <input type="text" id="uSenha_${i}" value="${esc(u.senha)}" style="width:120px">
       <span class="abas-check">
+        <label><input type="checkbox" id="uAgend_${i}" ${abas.includes('agendamentos')?'checked':''}> Agendamentos</label>
+        <label><input type="checkbox" id="uAgenda_${i}" ${abas.includes('agenda')?'checked':''}> Agenda</label>
         <label><input type="checkbox" id="uAtend_${i}" ${abas.includes('atendimentos')?'checked':''}> Atendimentos</label>
         <label><input type="checkbox" id="uAbert_${i}" ${abas.includes('abertura')?'checked':''}> Abertura de Pasta</label>
         <label><input type="checkbox" id="uInic_${i}" ${abas.includes('iniciais')?'checked':''}> Iniciais</label>
         <label><input type="checkbox" id="uAjuiz_${i}" ${abas.includes('ajuizamento')?'checked':''}> Ajuizamento</label>
+        <label><input type="checkbox" id="uAud_${i}" ${abas.includes('audiencias')?'checked':''}> Aviso de Audiência</label>
       </span>
       <button class="btn btn-mini btn-borda" onclick="salvarUsuario(${i})">Salvar</button>
       <button class="btn btn-mini btn-perigo" onclick="excluirUsuario(${i})">Excluir</button>
@@ -1447,18 +2011,21 @@ function renderUsuarios(){
   }).join('') || '<div style="font-size:12.5px;color:var(--cinza);margin-bottom:8px">Nenhum usuário cadastrado ainda.</div>';
 }
 
-function abasMarcadas(atendId,abertId,inicId,ajuizId){
+function abasMarcadas(atendId,abertId,inicId,ajuizId,agendId,agendaId,audId){
   const a=[];
+  if($(agendId).checked)a.push('agendamentos');
+  if($(agendaId).checked)a.push('agenda');
   if($(atendId).checked)a.push('atendimentos');
   if($(abertId).checked)a.push('abertura');
   if($(inicId).checked)a.push('iniciais');
   if($(ajuizId).checked)a.push('ajuizamento');
+  if($(audId).checked)a.push('audiencias');
   return a.join(',');
 }
 
 async function adicionarUsuario(){
   const nome=$('novoNome').value.trim(), senha=$('novaSenha').value.trim();
-  const abas=abasMarcadas('novoAtend','novoAbert','novoInic','novoAjuiz');
+  const abas=abasMarcadas('novoAtend','novoAbert','novoInic','novoAjuiz','novoAgend','novoAgenda','novoAud');
   if(!nome||!senha){toast('Informe nome e senha');return}
   if(!abas){toast('Marque ao menos uma aba');return}
   loading(true,'Salvando…');
@@ -1470,7 +2037,7 @@ async function adicionarUsuario(){
 
 async function salvarUsuario(i){
   const nome=$('uNome_'+i).value.trim(), senha=$('uSenha_'+i).value.trim();
-  const abas=abasMarcadas('uAtend_'+i,'uAbert_'+i,'uInic_'+i,'uAjuiz_'+i);
+  const abas=abasMarcadas('uAtend_'+i,'uAbert_'+i,'uInic_'+i,'uAjuiz_'+i,'uAgend_'+i,'uAgenda_'+i,'uAud_'+i);
   if(!nome||!senha){toast('Informe nome e senha');return}
   if(!abas){toast('Marque ao menos uma aba');return}
   loading(true,'Salvando…');
@@ -1478,6 +2045,21 @@ async function salvarUsuario(i){
   loading(false);
   if(r.ok){listaUsuariosCache=r.usuarios;renderUsuarios();toast('Usuário atualizado')}
   else toast(r.erro);
+}
+
+async function alterarSenhaMaster(){
+  const atual=$('msAtual').value, nova=$('msNova').value.trim();
+  if(!atual||!nova){toast('Preencha a senha atual e a nova senha');return}
+  if(!confirm('Alterar a senha do master? A nova senha valerá para todos os acessos a partir de agora.'))return;
+  loading(true,'Alterando senha…');
+  const r = await apiPost({action:'alterarSenhaMaster',senhaAtual:atual,senhaNova:nova});
+  loading(false);
+  if(r.ok){
+    usuario.senha = nova;
+    sessionStorage.setItem('usuarioADV', JSON.stringify(usuario));
+    $('msAtual').value='';$('msNova').value='';
+    toast('Senha do master alterada com sucesso');
+  }else toast(r.erro);
 }
 
 async function excluirUsuario(i){
@@ -1519,6 +2101,11 @@ async function excluirUsuario(i){
     el.addEventListener('input',renderizar);
     el.addEventListener('change',renderizar);
   });
+  document.querySelectorAll('[data-fg]').forEach(el=>{
+    el.addEventListener('input',renderAgendamentos);
+    el.addEventListener('change',renderAgendamentos);
+  });
+  $('fAgStatus').addEventListener('change',renderAgendamentos);
   ['fIniData','fIniStatus','fAjSaida','fAjData','fAjStatus','filtroMesIni','filtroMesAj'].forEach(id=>{
     $(id).addEventListener('change',renderizar);
     $(id).addEventListener('input',renderizar);
