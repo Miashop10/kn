@@ -1458,9 +1458,10 @@ function renderAgendamentos(){
       </td>
       <td style="min-width:220px" id="agSlot_${r.ID}">
         ${ag && r.AGENDA_DATA ? `<b>${esc(dataBR(r.AGENDA_DATA))}</b> às <b>${esc(r.AGENDA_HORA)}</b>` : `
-          <span style="display:${ag?'inline-flex':'none'};gap:4px;align-items:center">
-            <input type="date" class="ap-input" id="agData_${r.ID}">
-            <input type="time" step="1800" style="width:95px" id="agHora_${r.ID}">
+          <span style="display:${ag?'inline-flex':'none'};gap:4px;align-items:center;flex-wrap:wrap">
+            <input type="date" class="ap-input" id="agData_${r.ID}" onchange="agBuscarDisponiveis('${r.ID}')">
+            <input type="time" step="1800" style="width:95px" id="agHora_${r.ID}" onchange="agBuscarDisponiveis('${r.ID}')">
+            <select id="agAdv_${r.ID}" style="display:none;max-width:170px" title="Advogado do atendimento"></select>
             <button class="btn btn-mini btn-principal" onclick="agendarCliente('${r.ID}')">Agendar</button>
           </span>`}
       </td>
@@ -1520,12 +1521,32 @@ async function agMudaStatus(id,valor){
   else toast('Erro: '+resp.erro);
 }
 
+async function agBuscarDisponiveis(id){
+  const data = dataBR($('agData_'+id).value);
+  const hora = ($('agHora_'+id).value||'').slice(0,5);
+  const sel = $('agAdv_'+id);
+  sel.style.display='none';
+  if(!data||!hora) return;
+  loading(true,'Consultando advogados disponíveis…');
+  const resp = await apiPost({action:'advogadosDisponiveis',id,data,hora});
+  loading(false);
+  if(resp.ok){
+    sel.innerHTML = '<option value="">AUTOMÁTICO ('+esc(resp.advogados[0])+')</option>'+
+      resp.advogados.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+    sel.style.display='inline-block';
+  }else{
+    toast(resp.erro);
+  }
+}
+
 async function agendarCliente(id){
   const data = dataBR($('agData_'+id).value);
   const hora = $('agHora_'+id).value;
   if(!data||!hora){toast('Informe a data e o horário do agendamento');return}
+  const advSel = $('agAdv_'+id);
+  const advogadoEscolhido = advSel ? advSel.value : '';
   loading(true,'Verificando agenda dos advogados…');
-  const resp = await apiPost({action:'agendarCliente',id,data,hora:hora.slice(0,5)});
+  const resp = await apiPost({action:'agendarCliente',id,data,hora:hora.slice(0,5),advogado:advogadoEscolhido});
   loading(false);
   if(resp.ok){
     const r = agRegistros.find(x=>x.ID===id);
@@ -1735,7 +1756,7 @@ function renderAgenda(){
       const chave = fmtData(d)+'|'+h;
       const ocup = ocupMapa[chave];
       if(ocup){
-        htmlTab += `<td><div class="ag-cel ag-ocupado" title="${esc(ocup.NOME)} · ${esc(ocup.TELEFONE)} · ${esc(ocup.EMPRESA)}"><b>${esc(ocup.NOME)}</b><small>${esc(ocup.TELEFONE)}</small></div></td>`;
+        htmlTab += `<td><div class="ag-cel ag-ocupado" title="${esc(ocup.NOME)} · ${esc(ocup.TELEFONE)} · ${esc(ocup.EMPRESA)}"><b>${esc(ocup.NOME)}</b><small>${esc(ocup.TELEFONE)}${ocup.EMPRESA?' · '+esc(ocup.EMPRESA):''}</small></div></td>`;
       }else if(dispSet.has(chave)){
         htmlTab += `<td><div class="ag-cel ag-livre" data-di="${di}" data-hi="${hi}" title="Disponível — clique ou arraste para desmarcar">&#10003;</div></td>`;
       }else{
