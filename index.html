@@ -75,14 +75,19 @@ thead th{position:sticky;top:0;background:var(--navy);color:#e8e4da;font-size:11
 thead tr.filtros th{top:0;background:#2a3b55;padding:5px 6px}
 thead tr.nomes th{top:38px}
 table.t-alto thead tr.nomes th{top:72px}
-.agenda-grade{min-width:900px}
-.agenda-grade th{position:sticky;top:0}
-.agenda-grade td{border:1px solid var(--linha);padding:0;height:30px;min-width:120px;text-align:center;font-size:11.5px}
-.agenda-grade td.hora{background:var(--navy);color:#e8e4da;font-weight:600;min-width:60px;position:sticky;left:0}
-.ag-cel{cursor:pointer;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
-.ag-livre{background:var(--verde-bg);color:var(--verde-tx);font-weight:700}
-.ag-ocupado{background:var(--azul-bg);color:var(--azul-tx);font-weight:600;cursor:default;flex-direction:column;line-height:1.15;padding:1px}
-.ag-ocupado small{font-weight:400;font-size:10px}
+.agenda-grade{width:100%;table-layout:fixed;border-collapse:collapse;user-select:none}
+.ag-sel{outline:2px solid var(--oxblood);outline-offset:-2px;filter:brightness(.92)}
+.agenda-grade th.dia-click,.agenda-grade td.hora{cursor:pointer}
+.agenda-grade th.dia-click:hover,.agenda-grade td.hora:hover{filter:brightness(1.25)}
+.agenda-grade th{position:sticky;top:0;padding:3px 4px;font-size:10.5px}
+.agenda-grade th:first-child{width:52px}
+.agenda-grade td{border:1px solid var(--linha);padding:0;height:calc((100vh - 248px)/21);min-height:18px;text-align:center;font-size:11px;overflow:hidden}
+.agenda-grade td.hora{background:var(--navy);color:#e8e4da;font-weight:600;font-size:10.5px}
+.ag-cel{cursor:pointer;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ag-livre{background:var(--verde-bg);color:var(--verde-tx);font-weight:700;font-size:10.5px}
+.ag-ocupado{background:var(--azul-bg);color:var(--azul-tx);font-weight:600;cursor:default;flex-direction:column;line-height:1.1;padding:0 2px;white-space:nowrap}
+.ag-ocupado b{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:10.5px}
+.ag-ocupado small{font-weight:400;font-size:9.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 thead tr.filtros input,thead tr.filtros select{width:100%;min-width:70px;font-size:12px;padding:5px 7px;border-radius:5px;border:none}
 .th-de-ate input{display:block;min-width:118px;margin:0 0 3px}
 .th-de-ate input:last-child{margin-bottom:0}
@@ -209,6 +214,7 @@ td.acao{white-space:nowrap}
 <!-- ================= ABA 0: AGENDAMENTOS ================= -->
 <section class="painel" id="painel-agendamentos">
   <div class="barra">
+    <button class="btn btn-principal" onclick="abrirNovoAgendamento()">+ Novo agendamento</button>
     <button class="btn btn-borda doc-add" style="position:relative">
       &#128229; IMPORTAR LISTA <input type="file" accept=".xlsx,.xls,.csv,.pdf" onchange="importarAgArquivo(this,'lista')">
     </button>
@@ -257,12 +263,14 @@ td.acao{white-space:nowrap}
       <button class="sub-aba ativa" id="agSemanaLabel" style="cursor:default"></button>
       <button class="sub-aba" onclick="mudarSemana(1)">Próxima semana &#8250;</button>
     </div>
+    <button class="btn btn-mini btn-borda" onclick="marcarSemana(true)" title="Deixar todos os horários da semana disponíveis">Semana inteira disponível</button>
+    <button class="btn btn-mini btn-borda" onclick="marcarSemana(false)" title="Remover toda a disponibilidade da semana">Limpar semana</button>
     <div class="direita">
-      <span style="font-size:12px">Clique nos horários para marcar/desmarcar disponibilidade (verde) · atendimentos duram 30 min</span>
+      <span style="font-size:12px">Arraste sobre os horários para marcar vários de uma vez · clique no dia ou na hora para marcar a linha/coluna toda</span>
       <button class="btn btn-mini btn-borda" onclick="carregarAgenda()">&#8635; Atualizar</button>
     </div>
   </div>
-  <div class="tabela-wrap" style="max-height:calc(100vh - 245px)">
+  <div class="tabela-wrap" style="max-height:none;overflow:hidden">
     <table class="agenda-grade" id="tabAgenda"></table>
   </div>
 </section>
@@ -616,6 +624,27 @@ td.acao{white-space:nowrap}
     <input type="password" id="loginSenha" placeholder="Digite sua senha" onkeydown="if(event.key==='Enter')entrar()">
     <button class="btn btn-principal" onclick="entrar()">Entrar</button>
     <div class="login-erro" id="loginErro"></div>
+  </div>
+</div>
+
+<!-- ================= MODAL NOVO AGENDAMENTO ================= -->
+<div class="modal-fundo" id="mAgNovo">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-topo">
+      <h2>Novo agendamento</h2>
+      <button class="fechar" onclick="fecharModal('mAgNovo')">&times;</button>
+    </div>
+    <div class="modal-corpo">
+      <div class="grade" style="grid-template-columns:1fr">
+        <div class="campo"><label>Nome</label><input id="agN_NOME"></div>
+        <div class="campo"><label>Telefone</label><input id="agN_TELEFONE"></div>
+        <div class="campo"><label>Empresa</label><input id="agN_EMPRESA"></div>
+      </div>
+    </div>
+    <div class="modal-rodape">
+      <button class="btn btn-borda" onclick="fecharModal('mAgNovo')">Cancelar</button>
+      <button class="btn btn-principal" onclick="salvarNovoAgendamento()">Salvar</button>
+    </div>
   </div>
 </div>
 
@@ -1450,6 +1479,32 @@ function limparFiltrosAg(){
   renderAgendamentos();
 }
 
+function abrirNovoAgendamento(){
+  ['agN_NOME','agN_TELEFONE','agN_EMPRESA'].forEach(id=>$(id).value='');
+  $('mAgNovo').classList.add('aberto');
+  setTimeout(()=>$('agN_NOME').focus(),100);
+}
+
+async function salvarNovoAgendamento(){
+  const reg = {
+    NOME: $('agN_NOME').value.trim(),
+    TELEFONE: $('agN_TELEFONE').value.trim(),
+    EMPRESA: $('agN_EMPRESA').value.trim()
+  };
+  if(!reg.NOME){toast('Informe o nome');return}
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvarAgendamento',registro:reg});
+  loading(false);
+  if(resp.ok){
+    reg.ID = resp.id;
+    reg.CRIADO_EM = new Date().toLocaleDateString('pt-BR')+' '+new Date().toTimeString().slice(0,5);
+    agRegistros.push(reg);
+    renderAgendamentos();
+    fecharModal('mAgNovo');
+    toast('Agendamento criado — selecione o status quando fizer o contato');
+  }else toast('Erro: '+resp.erro);
+}
+
 async function agMudaStatus(id,valor){
   const r = agRegistros.find(x=>x.ID===id);
   if(normaliza(valor)==='AGENDADO'){
@@ -1672,19 +1727,19 @@ function renderAgenda(){
   const ocupMapa = {};
   agendaDados.agendados.filter(a=>a.ADVOGADO===adv).forEach(a=>{ocupMapa[a.AGENDA_DATA+'|'+a.AGENDA_HORA]=a});
 
-  let htmlTab = '<thead><tr><th style="min-width:60px">Hora</th>'+
-    dias.map((d,i)=>`<th>${AG_DIAS[i]}<br><small style="font-weight:400">${fmtData(d).slice(0,5)}</small></th>`).join('')+'</tr></thead><tbody>';
-  AG_HORAS.forEach(h=>{
-    htmlTab += `<tr><td class="hora">${h}</td>`;
-    dias.forEach(d=>{
+  let htmlTab = '<thead><tr><th>Hora</th>'+
+    dias.map((d,i)=>`<th class="dia-click" onclick="marcarDia(${i})" title="Clique para marcar/desmarcar o dia inteiro">${AG_DIAS[i]}<br><small style="font-weight:400">${fmtData(d).slice(0,5)}</small></th>`).join('')+'</tr></thead><tbody>';
+  AG_HORAS.forEach((h,hi)=>{
+    htmlTab += `<tr><td class="hora" onclick="marcarHora(${hi})" title="Clique para marcar/desmarcar este horário na semana toda">${h}</td>`;
+    dias.forEach((d,di)=>{
       const chave = fmtData(d)+'|'+h;
       const ocup = ocupMapa[chave];
       if(ocup){
-        htmlTab += `<td><div class="ag-cel ag-ocupado" title="${esc(ocup.NOME)} · ${esc(ocup.TELEFONE)} · ${esc(ocup.EMPRESA)}">${esc(ocup.NOME)}<small>${esc(ocup.TELEFONE)}</small></div></td>`;
+        htmlTab += `<td><div class="ag-cel ag-ocupado" title="${esc(ocup.NOME)} · ${esc(ocup.TELEFONE)} · ${esc(ocup.EMPRESA)}"><b>${esc(ocup.NOME)}</b><small>${esc(ocup.TELEFONE)}</small></div></td>`;
       }else if(dispSet.has(chave)){
-        htmlTab += `<td><div class="ag-cel ag-livre" onclick="toggleDisp('${fmtData(d)}','${h}')" title="Disponível — clique para desmarcar">Disponível</div></td>`;
+        htmlTab += `<td><div class="ag-cel ag-livre" data-di="${di}" data-hi="${hi}" title="Disponível — clique ou arraste para desmarcar">&#10003;</div></td>`;
       }else{
-        htmlTab += `<td><div class="ag-cel" onclick="toggleDisp('${fmtData(d)}','${h}')" title="Clique para marcar como disponível">&nbsp;</div></td>`;
+        htmlTab += `<td><div class="ag-cel" data-di="${di}" data-hi="${hi}" title="Clique ou arraste para marcar como disponível">&nbsp;</div></td>`;
       }
     });
     htmlTab += '</tr>';
@@ -1692,18 +1747,124 @@ function renderAgenda(){
   $('tabAgenda').innerHTML = htmlTab+'</tbody>';
 }
 
-async function toggleDisp(data,hora){
+/* ---------- seleção por arrasto ---------- */
+let agDrag = null; // {di0,hi0,di1,hi1,adicionar}
+
+function agDiasSemana(){
+  return AG_DIAS.map((_,i)=>{const d=new Date(agSemana);d.setDate(d.getDate()+i);return fmtData(d)});
+}
+function slotsDoRetangulo(){
+  const datas = agDiasSemana();
+  const adv = advogadoAtual();
+  const dispSet = new Set(agendaDados.disponibilidade.filter(d=>d.advogado===adv).map(d=>d.data+'|'+d.hora));
+  const ocupSet = new Set(agendaDados.agendados.filter(a=>a.ADVOGADO===adv).map(a=>a.AGENDA_DATA+'|'+a.AGENDA_HORA));
+  const [d0,d1]=[Math.min(agDrag.di0,agDrag.di1),Math.max(agDrag.di0,agDrag.di1)];
+  const [h0,h1]=[Math.min(agDrag.hi0,agDrag.hi1),Math.max(agDrag.hi0,agDrag.hi1)];
+  const slots=[];
+  for(let di=d0;di<=d1;di++)for(let hi=h0;hi<=h1;hi++){
+    const chave = datas[di]+'|'+AG_HORAS[hi];
+    if(ocupSet.has(chave)) continue; // não mexe em horário com cliente
+    if(agDrag.adicionar && dispSet.has(chave)) continue;
+    if(!agDrag.adicionar && !dispSet.has(chave)) continue;
+    slots.push({data:datas[di],hora:AG_HORAS[hi]});
+  }
+  return slots;
+}
+function agDestacar(){
+  const [d0,d1]=[Math.min(agDrag.di0,agDrag.di1),Math.max(agDrag.di0,agDrag.di1)];
+  const [h0,h1]=[Math.min(agDrag.hi0,agDrag.hi1),Math.max(agDrag.hi0,agDrag.hi1)];
+  document.querySelectorAll('#tabAgenda [data-di]').forEach(el=>{
+    const di=+el.dataset.di, hi=+el.dataset.hi;
+    el.classList.toggle('ag-sel', di>=d0&&di<=d1&&hi>=h0&&hi<=h1);
+  });
+}
+
+async function aplicarDispLote(slots,disponivel){
   const adv = advogadoAtual();
   if(!adv){toast('Selecione o advogado');return}
-  loading(true,'Salvando…');
-  const resp = await apiPost({action:'toggleDisp',advogado:adv,data,hora});
+  if(!slots.length){renderAgenda();return}
+  loading(true,'Salvando '+slots.length+' horário(s)…');
+  const resp = await apiPost({action:'setDispLote',advogado:adv,slots,disponivel});
   loading(false);
   if(resp.ok){
-    if(resp.disponivel){agendaDados.disponibilidade.push({advogado:adv,data,hora})}
-    else{agendaDados.disponibilidade = agendaDados.disponibilidade.filter(d=>!(d.advogado===adv&&d.data===data&&d.hora===hora))}
+    if(disponivel){
+      slots.forEach(s=>agendaDados.disponibilidade.push({advogado:adv,data:s.data,hora:s.hora}));
+    }else{
+      const rem = new Set(slots.map(s=>s.data+'|'+s.hora));
+      agendaDados.disponibilidade = agendaDados.disponibilidade.filter(d=>!(d.advogado===adv && rem.has(d.data+'|'+d.hora)));
+    }
     renderAgenda();
+    toast(slots.length+' horário(s) '+(disponivel?'disponíveis':'removidos'));
   }else toast('Erro: '+resp.erro);
 }
+
+function marcarDia(di){
+  const datas = agDiasSemana();
+  const adv = advogadoAtual();
+  const dispSet = new Set(agendaDados.disponibilidade.filter(d=>d.advogado===adv).map(d=>d.data+'|'+d.hora));
+  const ocupSet = new Set(agendaDados.agendados.filter(a=>a.ADVOGADO===adv).map(a=>a.AGENDA_DATA+'|'+a.AGENDA_HORA));
+  const livres = AG_HORAS.filter(h=>!ocupSet.has(datas[di]+'|'+h));
+  const faltantes = livres.filter(h=>!dispSet.has(datas[di]+'|'+h));
+  const adicionar = faltantes.length>0; // se ainda falta algum, marca o dia; senão, desmarca
+  const slots = (adicionar?faltantes:livres.filter(h=>dispSet.has(datas[di]+'|'+h))).map(h=>({data:datas[di],hora:h}));
+  aplicarDispLote(slots,adicionar);
+}
+
+function marcarHora(hi){
+  const datas = agDiasSemana();
+  const adv = advogadoAtual();
+  const h = AG_HORAS[hi];
+  const dispSet = new Set(agendaDados.disponibilidade.filter(d=>d.advogado===adv).map(d=>d.data+'|'+d.hora));
+  const ocupSet = new Set(agendaDados.agendados.filter(a=>a.ADVOGADO===adv).map(a=>a.AGENDA_DATA+'|'+a.AGENDA_HORA));
+  const livres = datas.filter(dt=>!ocupSet.has(dt+'|'+h));
+  const faltantes = livres.filter(dt=>!dispSet.has(dt+'|'+h));
+  const adicionar = faltantes.length>0;
+  const slots = (adicionar?faltantes:livres.filter(dt=>dispSet.has(dt+'|'+h))).map(dt=>({data:dt,hora:h}));
+  aplicarDispLote(slots,adicionar);
+}
+
+function marcarSemana(disponivel){
+  const datas = agDiasSemana();
+  const adv = advogadoAtual();
+  const dispSet = new Set(agendaDados.disponibilidade.filter(d=>d.advogado===adv).map(d=>d.data+'|'+d.hora));
+  const ocupSet = new Set(agendaDados.agendados.filter(a=>a.ADVOGADO===adv).map(a=>a.AGENDA_DATA+'|'+a.AGENDA_HORA));
+  const slots=[];
+  datas.forEach(dt=>AG_HORAS.forEach(h=>{
+    const chave = dt+'|'+h;
+    if(ocupSet.has(chave)) return;
+    if(disponivel && !dispSet.has(chave)) slots.push({data:dt,hora:h});
+    if(!disponivel && dispSet.has(chave)) slots.push({data:dt,hora:h});
+  }));
+  if(!slots.length){toast(disponivel?'A semana já está toda disponível':'Não há horários para remover');return}
+  aplicarDispLote(slots,disponivel);
+}
+
+// eventos de arrasto na grade da agenda (clique único = arrasto de 1 célula)
+document.addEventListener('mousedown',e=>{
+  const cel = e.target.closest('#tabAgenda [data-di]');
+  if(!cel)return;
+  e.preventDefault();
+  const adv = advogadoAtual();
+  if(!adv){toast('Selecione o advogado');return}
+  agDrag = {di0:+cel.dataset.di,hi0:+cel.dataset.hi,di1:+cel.dataset.di,hi1:+cel.dataset.hi,
+            adicionar: !cel.classList.contains('ag-livre')};
+  agDestacar();
+});
+document.addEventListener('mouseover',e=>{
+  if(!agDrag)return;
+  const cel = e.target.closest('#tabAgenda [data-di]');
+  if(!cel)return;
+  agDrag.di1=+cel.dataset.di; agDrag.hi1=+cel.dataset.hi;
+  agDestacar();
+});
+document.addEventListener('mouseup',()=>{
+  if(!agDrag)return;
+  const slots = slotsDoRetangulo();
+  const adicionar = agDrag.adicionar;
+  agDrag = null;
+  document.querySelectorAll('#tabAgenda .ag-sel').forEach(el=>el.classList.remove('ag-sel'));
+  aplicarDispLote(slots,adicionar);
+});
 
 /* ===================== aviso de audiência ===================== */
 let audRegistros = [];
