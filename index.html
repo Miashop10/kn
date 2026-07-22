@@ -207,6 +207,8 @@ td.acao{white-space:nowrap}
     <button class="aba" data-aba="iniciais" onclick="trocarAba('iniciais')">Iniciais para elaborar <span class="cont" id="contIniciais">0</span></button>
     <button class="aba" data-aba="ajuizamento" onclick="trocarAba('ajuizamento')">Ajuizamento <span class="cont" id="contAjuiz">0</span></button>
     <button class="aba" data-aba="audiencias" onclick="trocarAba('audiencias')">Aviso de Audiência <span class="cont" id="contAud">0</span></button>
+    <button class="aba" data-aba="audiencia" onclick="trocarAba('audiencia')">Audiência <span class="cont" id="contAudRes">0</span></button>
+    <button class="aba" data-aba="redistribuicao" onclick="trocarAba('redistribuicao')">Redistribuição <span class="cont" id="contRedist">0</span></button>
   </div>
 </header>
 
@@ -545,6 +547,82 @@ td.acao{white-space:nowrap}
     <div class="vazio" id="vazioAud" style="display:none">Nenhuma audiência importada. Use "Importar pauta de audiências".</div>
   </div>
 </section>
+
+<!-- ================= ABA 6: AUDIÊNCIA (RESULTADO) ================= -->
+<section class="painel" id="painel-audiencia">
+  <div class="barra">
+    <span style="color:var(--cinza);font-size:13px">Registre aqui o resultado de cada audiência da pauta importada.</span>
+    <div class="direita"><button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button></div>
+  </div>
+  <div class="tabela-wrap">
+    <table>
+      <thead>
+        <tr class="filtros">
+          <th><input type="date" id="fArData" title="Filtrar pela data da audiência"></th>
+          <th></th>
+          <th><input data-fz="COL_B" placeholder="Filtrar"></th>
+          <th><input data-fz="COL_H" placeholder="Filtrar"></th>
+          <th><input data-fz="COL_L" placeholder="Filtrar"></th>
+          <th><input data-fz="COL_M" placeholder="Filtrar"></th>
+          <th><input data-fz="COL_N" placeholder="Filtrar"></th>
+          <th><select id="fArStatus">
+            <option value="">Todos</option>
+            <option value="__SEM__">(sem resultado)</option>
+            <option>OUVIU PREPOSTO E TEVE ACORDO</option>
+            <option>NÃO COMPARECEU</option>
+            <option>OUVIU TESTEMUNHA</option>
+            <option>OUVIU TESTEMUNHA E PREPOSTO</option>
+            <option>NÃO OUVIU NINGUÉM</option>
+          </select></th>
+          <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosAr()" title="Limpar filtros">&#10005;</button></th>
+        </tr>
+        <tr class="nomes">
+          <th>Data</th><th>Horário</th><th>Pasta</th><th>Vara</th><th>Autor</th><th>Réu</th><th>Nº processo</th>
+          <th style="min-width:300px">Status</th><th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="corpoAudRes"></tbody>
+    </table>
+    <div class="vazio" id="vazioAudRes" style="display:none">Nenhuma audiência importada ainda (importe a pauta na aba Aviso de Audiência).</div>
+  </div>
+</section>
+
+<!-- ================= ABA 7: REDISTRIBUIÇÃO ================= -->
+<section class="painel" id="painel-redistribuicao">
+  <div class="barra">
+    <span style="color:var(--cinza);font-size:13px">Entram aqui automaticamente: <b>CLIENTE NÃO LOCALIZADO</b> (Aviso de Audiência) e <b>NÃO COMPARECEU</b> (Audiência).</span>
+    <div class="direita"><button class="btn btn-mini btn-borda" onclick="carregar()">&#8635; Atualizar</button></div>
+  </div>
+  <div class="tabela-wrap">
+    <table>
+      <thead>
+        <tr class="filtros">
+          <th></th>
+          <th><input type="date" id="fRdData" title="Filtrar pela data da audiência"></th>
+          <th><input data-fw="COL_B" placeholder="Filtrar"></th>
+          <th><input data-fw="COL_L" placeholder="Filtrar"></th>
+          <th><input data-fw="COL_M" placeholder="Filtrar"></th>
+          <th><input data-fw="COL_N" placeholder="Filtrar"></th>
+          <th><select id="fRdStatus">
+            <option value="">Todos</option>
+            <option>PENDENTE</option>
+            <option>SEM CONTATO</option>
+            <option>REDISTRIBUÍDO</option>
+            <option>PEREMPÇÃO</option>
+            <option>CLIENTE NÃO QUER REDISTRIBUIR</option>
+          </select></th>
+          <th><button class="btn btn-mini btn-borda" onclick="limparFiltrosRd()" title="Limpar filtros">&#10005;</button></th>
+        </tr>
+        <tr class="nomes">
+          <th>Origem</th><th>Data audiência</th><th>Pasta</th><th>Autor</th><th>Réu</th><th>Nº processo</th>
+          <th>Status</th><th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="corpoRedist"></tbody>
+    </table>
+    <div class="vazio" id="vazioRedist" style="display:none">Nenhum processo para redistribuição.</div>
+  </div>
+</section>
 </main>
 
 <!-- ================= MODAL FICHA ================= -->
@@ -681,6 +759,8 @@ td.acao{white-space:nowrap}
           <label><input type="checkbox" id="novoInic"> Iniciais</label>
           <label><input type="checkbox" id="novoAjuiz"> Ajuizamento</label>
           <label><input type="checkbox" id="novoAud"> Aviso de Audiência</label>
+          <label><input type="checkbox" id="novoAudR"> Audiência</label>
+          <label><input type="checkbox" id="novoRedist"> Redistribuição</label>
         </span>
         <button class="btn btn-mini btn-principal" onclick="adicionarUsuario()">+ Adicionar</button>
       </div>
@@ -793,6 +873,8 @@ async function carregar(){
   renderAgendamentos();
   montarCabecalhoAud();
   renderAudiencias();
+  renderAudRes();
+  renderRedist();
 }
 
 function filtrosAtivos(){
@@ -2009,7 +2091,7 @@ async function salvarAudStatus(id,valor){
   loading(true,'Salvando…');
   const resp = await apiPost({action:'salvarAudiencia',registro:{ID:id,STATUS:valor}});
   loading(false);
-  if(resp.ok){if(r)r.STATUS=valor;renderAudiencias();toast('Status salvo')}
+  if(resp.ok){if(r)r.STATUS=valor;renderAudiencias();renderRedist();toast('Status salvo')}
   else toast('Erro: '+resp.erro);
 }
 
@@ -2070,6 +2152,148 @@ function processarPauta(linhas){
     if(resp.ok){toast(resp.total+' audiências importadas');await carregar()}
     else toast('Erro: '+resp.erro);
   })();
+}
+
+/* ===================== audiência (resultado) ===================== */
+const AR_STATUS = ['OUVIU PREPOSTO E TEVE ACORDO','NÃO COMPARECEU','OUVIU TESTEMUNHA','OUVIU TESTEMUNHA E PREPOSTO','NÃO OUVIU NINGUÉM'];
+let arFiltros = {};
+
+function renderAudRes(){
+  const dataF = $('fArData').value, stF = $('fArStatus').value;
+  const visiveis = audRegistros.filter(r=>{
+    if(dataF && dataISO(r.COL_E)!==dataF) return false;
+    if(stF==='__SEM__'){ if(String(r.AUD_RESULTADO||'').trim()) return false; }
+    else if(stF && normaliza(r.AUD_RESULTADO)!==normaliza(stF)) return false;
+    for(const [c,v] of Object.entries(arFiltros)){
+      if(v && !normaliza(r[c]).includes(normaliza(v))) return false;
+    }
+    return true;
+  });
+  visiveis.sort((a,b)=>(chaveData(a.COL_E)+' '+(a.COL_G||'')).localeCompare(chaveData(b.COL_E)+' '+(b.COL_G||'')));
+  $('corpoAudRes').innerHTML = visiveis.map(r=>{
+    const st = normaliza(r.AUD_RESULTADO);
+    const acordo = st==='OUVIU PREPOSTO E TEVE ACORDO';
+    const semNinguem = st==='NAO OUVIU NINGUEM';
+    return `<tr>
+      <td>${esc(r.COL_E)}</td><td>${esc(r.COL_G)}</td><td>${esc(r.COL_B)}</td><td>${esc(r.COL_H)}</td>
+      <td>${esc(r.COL_L)}</td><td>${esc(r.COL_M)}</td><td>${esc(r.COL_N)}</td>
+      <td>
+        <select onchange="arMudaStatus('${r.ID}',this.value)">
+          <option value=""></option>
+          ${AR_STATUS.map(s=>`<option ${st===normaliza(s)?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <span style="display:${acordo?'flex':'none'};gap:4px;margin-top:5px;align-items:center">
+          <input id="arValor_${r.ID}" placeholder="Valor do acordo (R$)" style="width:150px" value="${esc(r.AUD_ACORDO_VALOR||'')}">
+          <input id="arParc_${r.ID}" placeholder="Parcelas" style="width:80px" value="${esc(r.AUD_ACORDO_PARCELAS||'')}">
+          <button class="btn btn-mini btn-principal" onclick="arSalvarDetalhes('${r.ID}')">Salvar</button>
+        </span>
+        <span style="display:${semNinguem?'flex':'none'};gap:4px;margin-top:5px;align-items:center">
+          <input id="arObs_${r.ID}" placeholder="Obs:" style="flex:1;min-width:200px" value="${esc(r.AUD_OBS||'')}">
+          <button class="btn btn-mini btn-principal" onclick="arSalvarDetalhes('${r.ID}')">Salvar</button>
+        </span>
+      </td>
+      <td class="acao"><button class="btn btn-mini btn-borda" onclick="trocarAba('audiencias')" title="Ver na aba Aviso de Audiência">Aviso</button></td>
+    </tr>`}).join('');
+  $('vazioAudRes').style.display = visiveis.length?'none':'block';
+  // passivo da aba: audiências ainda sem resultado registrado
+  $('contAudRes').textContent = audRegistros.filter(r=>!String(r.AUD_RESULTADO||'').trim()).length;
+}
+function limparFiltrosAr(){
+  arFiltros={};
+  document.querySelectorAll('[data-fz]').forEach(el=>el.value='');
+  $('fArData').value='';$('fArStatus').value='';
+  renderAudRes();
+}
+
+async function arMudaStatus(id,valor){
+  const r = audRegistros.find(x=>x.ID===id);
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvarAudiencia',registro:{ID:id,AUD_RESULTADO:valor}});
+  loading(false);
+  if(resp.ok){if(r)r.AUD_RESULTADO=valor;renderAudRes();renderRedist();toast('Resultado salvo')}
+  else toast('Erro: '+resp.erro);
+}
+
+async function arSalvarDetalhes(id){
+  const r = audRegistros.find(x=>x.ID===id);
+  const reg = {ID:id};
+  const v=$('arValor_'+id), p=$('arParc_'+id), o=$('arObs_'+id);
+  if(v)reg.AUD_ACORDO_VALOR=v.value.trim();
+  if(p)reg.AUD_ACORDO_PARCELAS=p.value.trim();
+  if(o)reg.AUD_OBS=o.value.trim();
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvarAudiencia',registro:reg});
+  loading(false);
+  if(resp.ok){if(r)Object.assign(r,reg);toast('Salvo')}
+  else toast('Erro: '+resp.erro);
+}
+
+/* ===================== redistribuição ===================== */
+const RD_STATUS_CORES = {
+  'REDISTRIBUIDO':'verde',
+  'PENDENTE':'amarelo',
+  'SEM CONTATO':'vermelho',
+  'PEREMPCAO':'vermelho',
+  'CLIENTE NAO QUER REDISTRIBUIR':'cinza'
+};
+const RD_STATUS = ['PENDENTE','SEM CONTATO','REDISTRIBUÍDO','PEREMPÇÃO','CLIENTE NÃO QUER REDISTRIBUIR'];
+let rdFiltros = {};
+
+function rdBase(){
+  return audRegistros.filter(r=>
+    normaliza(r.STATUS)==='CLIENTE NAO LOCALIZADO' ||
+    normaliza(r.AUD_RESULTADO)==='NAO COMPARECEU');
+}
+function rdStatusDe(r){
+  const s = normaliza(r.REDIST_STATUS);
+  return s || 'PENDENTE'; // padrão ao entrar na aba
+}
+
+function renderRedist(){
+  const base = rdBase();
+  const dataF = $('fRdData').value, stF = $('fRdStatus').value;
+  const visiveis = base.filter(r=>{
+    if(dataF && dataISO(r.COL_E)!==dataF) return false;
+    if(stF && rdStatusDe(r)!==normaliza(stF)) return false;
+    for(const [c,v] of Object.entries(rdFiltros)){
+      if(v && !normaliza(r[c]).includes(normaliza(v))) return false;
+    }
+    return true;
+  });
+  visiveis.sort((a,b)=>(chaveData(a.COL_E)+' '+(a.COL_G||'')).localeCompare(chaveData(b.COL_E)+' '+(b.COL_G||'')));
+  $('corpoRedist').innerHTML = visiveis.map(r=>{
+    const st = rdStatusDe(r);
+    const cor = RD_STATUS_CORES[st]||'amarelo';
+    const origem = normaliza(r.AUD_RESULTADO)==='NAO COMPARECEU' ? 'Audiência — não compareceu' : 'Aviso — não localizado';
+    return `<tr class="st-${cor}">
+      <td style="font-size:11.5px">${origem}</td>
+      <td>${esc(r.COL_E)}</td><td>${esc(r.COL_B)}</td>
+      <td>${esc(r.COL_L)}</td><td>${esc(r.COL_M)}</td><td>${esc(r.COL_N)}</td>
+      <td>
+        <select onchange="rdMudaStatus('${r.ID}',this.value)">
+          ${RD_STATUS.map(s=>`<option ${st===normaliza(s)?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td class="acao"><button class="btn btn-mini btn-borda" onclick="trocarAba('audiencia')" title="Ver na aba Audiência">Audiência</button></td>
+    </tr>`}).join('');
+  $('vazioRedist').style.display = visiveis.length?'none':'block';
+  // passivo da aba: pendentes + sem contato
+  $('contRedist').textContent = base.filter(r=>['PENDENTE','SEM CONTATO'].includes(rdStatusDe(r))).length;
+}
+function limparFiltrosRd(){
+  rdFiltros={};
+  document.querySelectorAll('[data-fw]').forEach(el=>el.value='');
+  $('fRdData').value='';$('fRdStatus').value='';
+  renderRedist();
+}
+
+async function rdMudaStatus(id,valor){
+  const r = audRegistros.find(x=>x.ID===id);
+  loading(true,'Salvando…');
+  const resp = await apiPost({action:'salvarAudiencia',registro:{ID:id,REDIST_STATUS:valor}});
+  loading(false);
+  if(resp.ok){if(r)r.REDIST_STATUS=valor;renderRedist();toast('Status salvo')}
+  else toast('Erro: '+resp.erro);
 }
 
 /* ===================== exportação (master) ===================== */
@@ -2223,7 +2447,7 @@ function aplicarLogin(){
     b.style.display = pode(b.dataset.aba)?'inline-flex':'none';
   });
   $('agAdvSel').innerHTML='';
-  const primeira = ['agendamentos','agenda','atendimentos','abertura','iniciais','ajuizamento','audiencias'].find(pode) || 'atendimentos';
+  const primeira = ['agendamentos','agenda','atendimentos','abertura','iniciais','ajuizamento','audiencias','audiencia','redistribuicao'].find(pode) || 'atendimentos';
   trocarAba(primeira);
   carregar();
 }
@@ -2269,6 +2493,8 @@ function renderUsuarios(){
         <label><input type="checkbox" id="uInic_${i}" ${abas.includes('iniciais')?'checked':''}> Iniciais</label>
         <label><input type="checkbox" id="uAjuiz_${i}" ${abas.includes('ajuizamento')?'checked':''}> Ajuizamento</label>
         <label><input type="checkbox" id="uAud_${i}" ${abas.includes('audiencias')?'checked':''}> Aviso de Audiência</label>
+        <label><input type="checkbox" id="uAudR_${i}" ${abas.includes('audiencia')?'checked':''}> Audiência</label>
+        <label><input type="checkbox" id="uRedist_${i}" ${abas.includes('redistribuicao')?'checked':''}> Redistribuição</label>
       </span>
       <button class="btn btn-mini btn-borda" onclick="salvarUsuario(${i})">Salvar</button>
       <button class="btn btn-mini btn-perigo" onclick="excluirUsuario(${i})">Excluir</button>
@@ -2276,7 +2502,7 @@ function renderUsuarios(){
   }).join('') || '<div style="font-size:12.5px;color:var(--cinza);margin-bottom:8px">Nenhum usuário cadastrado ainda.</div>';
 }
 
-function abasMarcadas(atendId,abertId,inicId,ajuizId,agendId,agendaId,audId){
+function abasMarcadas(atendId,abertId,inicId,ajuizId,agendId,agendaId,audId,audRId,redistId){
   const a=[];
   if($(agendId).checked)a.push('agendamentos');
   if($(agendaId).checked)a.push('agenda');
@@ -2285,12 +2511,14 @@ function abasMarcadas(atendId,abertId,inicId,ajuizId,agendId,agendaId,audId){
   if($(inicId).checked)a.push('iniciais');
   if($(ajuizId).checked)a.push('ajuizamento');
   if($(audId).checked)a.push('audiencias');
+  if($(audRId).checked)a.push('audiencia');
+  if($(redistId).checked)a.push('redistribuicao');
   return a.join(',');
 }
 
 async function adicionarUsuario(){
   const nome=$('novoNome').value.trim(), senha=$('novaSenha').value.trim();
-  const abas=abasMarcadas('novoAtend','novoAbert','novoInic','novoAjuiz','novoAgend','novoAgenda','novoAud');
+  const abas=abasMarcadas('novoAtend','novoAbert','novoInic','novoAjuiz','novoAgend','novoAgenda','novoAud','novoAudR','novoRedist');
   if(!nome||!senha){toast('Informe nome e senha');return}
   if(!abas){toast('Marque ao menos uma aba');return}
   loading(true,'Salvando…');
@@ -2302,7 +2530,7 @@ async function adicionarUsuario(){
 
 async function salvarUsuario(i){
   const nome=$('uNome_'+i).value.trim(), senha=$('uSenha_'+i).value.trim();
-  const abas=abasMarcadas('uAtend_'+i,'uAbert_'+i,'uInic_'+i,'uAjuiz_'+i,'uAgend_'+i,'uAgenda_'+i,'uAud_'+i);
+  const abas=abasMarcadas('uAtend_'+i,'uAbert_'+i,'uInic_'+i,'uAjuiz_'+i,'uAgend_'+i,'uAgenda_'+i,'uAud_'+i,'uAudR_'+i,'uRedist_'+i);
   if(!nome||!senha){toast('Informe nome e senha');return}
   if(!abas){toast('Marque ao menos uma aba');return}
   loading(true,'Salvando…');
@@ -2371,6 +2599,18 @@ async function excluirUsuario(i){
     el.addEventListener('change',renderAgendamentos);
   });
   $('fAgStatus').addEventListener('change',renderAgendamentos);
+  document.querySelectorAll('[data-fz]').forEach(el=>{
+    el.addEventListener('input',()=>{arFiltros[el.dataset.fz]=el.value;renderAudRes()});
+  });
+  $('fArData').addEventListener('change',renderAudRes);
+  $('fArData').addEventListener('input',renderAudRes);
+  $('fArStatus').addEventListener('change',renderAudRes);
+  document.querySelectorAll('[data-fw]').forEach(el=>{
+    el.addEventListener('input',()=>{rdFiltros[el.dataset.fw]=el.value;renderRedist()});
+  });
+  $('fRdData').addEventListener('change',renderRedist);
+  $('fRdData').addEventListener('input',renderRedist);
+  $('fRdStatus').addEventListener('change',renderRedist);
   $('filtroMesAg').addEventListener('change',renderAgendamentos);
   $('filtroMesAg').addEventListener('input',renderAgendamentos);
   ['fIniData','fIniStatus','fAjSaida','fAjData','fAjStatus','filtroMesIni','filtroMesAj'].forEach(id=>{
